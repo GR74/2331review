@@ -1,0 +1,2581 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+<title>CSE2331 Final Review Playground</title>
+<style>
+  :root {
+    --bg: #f7f6f1; --panel: #ffffff; --ink: #1f1f1c; --muted: #5f5e5a;
+    --line: #d3d1c7; --accent: #185fa5; --accent-soft: #e6f1fb;
+    --ok: #3b6d11; --ok-soft: #eaf3de; --warn: #854f0b; --warn-soft: #faeeda;
+    --bad: #a32d2d; --bad-soft: #fcebeb; --purple: #534ab7; --purple-soft: #eeedfe;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+    --shadow-lg: 0 12px 32px rgba(0,0,0,0.15);
+  }
+  [data-theme="dark"] {
+    --bg: #16161a; --panel: #1e1e23; --ink: #e8e6e0; --muted: #888684;
+    --line: #33333a; --accent: #5a9fdf; --accent-soft: #1a2d40;
+    --ok: #7fc04a; --ok-soft: #1e2e17; --warn: #e0a652; --warn-soft: #2e2312;
+    --bad: #e47575; --bad-soft: #2e1818; --purple: #9288e0; --purple-soft: #1e1c30;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    transition: background 0.3s, color 0.3s; }
+
+  /* Splash */
+  #splash { position: fixed; inset: 0; z-index: 100; background: linear-gradient(135deg, #185fa5 0%, #534ab7 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; text-align: center; padding: 20px; }
+  #splash.hiding { opacity: 0; transition: opacity 0.5s ease-out; pointer-events: none; }
+  #splash h1 { font-size: 52px; margin: 0; font-weight: 800; letter-spacing: -1px;
+    animation: splashZoom 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  #splash .subtitle { font-size: 18px; opacity: 0.9; margin: 12px 0 8px; animation: splashFade 1s 0.3s both; }
+  #splash .course { font-size: 14px; opacity: 0.7; margin-bottom: 40px; animation: splashFade 1s 0.5s both; letter-spacing: 2px; }
+  #splash .cta { background: white; color: #185fa5; border: none; padding: 16px 48px; border-radius: 40px;
+    font-size: 18px; font-weight: 600; cursor: pointer; font-family: inherit;
+    animation: splashBounce 1s 0.8s both, pulse 2s 2s infinite; box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+  #splash .cta:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(0,0,0,0.4); }
+  #splash .emoji-row { font-size: 48px; margin-bottom: 20px; animation: splashFade 1s 0.6s both; }
+  #splash .emoji-row span { display: inline-block; margin: 0 8px; animation: bob 2s ease-in-out infinite; }
+  #splash .emoji-row span:nth-child(1) { animation-delay: 0s; }
+  #splash .emoji-row span:nth-child(2) { animation-delay: 0.2s; }
+  #splash .emoji-row span:nth-child(3) { animation-delay: 0.4s; }
+  #splash .emoji-row span:nth-child(4) { animation-delay: 0.6s; }
+  @keyframes splashZoom { from { transform: scale(0.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @keyframes splashFade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes splashBounce { 0% { transform: translateY(20px); opacity: 0; } 60% { transform: translateY(-6px); } 100% { transform: translateY(0); opacity: 1; } }
+  @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+  @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+
+  header { padding: 16px 24px 8px; border-bottom: 1px solid var(--line); background: var(--panel);
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+  header .title-block h1 { font-size: 20px; margin: 0 0 2px; }
+  header .title-block p { margin: 0; color: var(--muted); font-size: 12.5px; }
+  header .controls { display: flex; gap: 6px; align-items: center; }
+  header .icon-btn { background: var(--panel); border: 1px solid var(--line); width: 36px; height: 36px;
+    border-radius: 8px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center;
+    color: var(--ink); transition: all 0.15s; }
+  header .icon-btn:hover { background: var(--accent-soft); border-color: var(--accent); }
+  header .icon-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+  nav { display: flex; gap: 0; padding: 0 24px; background: var(--panel); border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; z-index: 20; overflow-x: auto; white-space: nowrap;
+    scrollbar-width: thin; }
+  nav::-webkit-scrollbar { height: 4px; }
+  nav::-webkit-scrollbar-thumb { background: var(--line); border-radius: 2px; }
+  nav button { background: none; border: none; padding: 11px 14px; cursor: pointer; font-size: 13px;
+    color: var(--muted); border-bottom: 3px solid transparent; font-family: inherit; transition: all 0.15s; }
+  nav button.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 500; }
+  nav button:hover:not(.active) { color: var(--ink); }
+
+  main { padding: 20px 24px 60px; }
+  section { display: none; animation: fadeIn 0.3s ease-out; }
+  section.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  h2 { font-size: 17px; margin: 0 0 12px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 18px;
+    transition: background 0.3s, border-color 0.3s; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+  button.btn { background: var(--accent); color: white; border: none; padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-family: inherit; transition: transform 0.08s, background 0.15s; }
+  button.btn:hover { background: #0c447c; transform: translateY(-1px); }
+  button.btn:active { transform: translateY(0); }
+  button.btn.secondary { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  button.btn.secondary:hover { background: var(--accent-soft); border-color: var(--accent); }
+  button.btn.big { padding: 12px 22px; font-size: 15px; }
+  button.btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  input, select, textarea { padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; font-family: inherit; font-size: 13px; background: var(--panel); color: var(--ink); }
+  label { font-size: 13px; color: var(--muted); }
+  .flex { display: flex; gap: 18px; }
+  .flex > .col { flex: 1; min-width: 0; }
+  canvas { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; width: 100%; max-width: 100%; touch-action: none; }
+  canvas.crosshair { cursor: crosshair; }
+  #canvas, #race-canvas-left, #race-canvas-right, #puzzle-canvas { height: 420px; max-height: 55vh; }
+  #maze-canvas { height: 560px; max-height: 70vh; }
+  #confetti { background: transparent !important; border: none !important; border-radius: 0 !important; width: 100vw !important; height: 100vh !important; }
+
+  .log { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px; max-height: 260px; overflow-y: auto; font-family: "SF Mono", Consolas, monospace; font-size: 12.5px; line-height: 1.65; white-space: pre-wrap; }
+  .log .step { border-bottom: 1px dashed var(--line); padding-bottom: 6px; margin-bottom: 6px; }
+  .log .step:last-child { border-bottom: none; }
+  .log .pick { color: var(--ok); font-weight: 500; } .log .skip { color: var(--bad); }
+  .hint { background: var(--accent-soft); border-left: 3px solid var(--accent); padding: 10px 14px; border-radius: 4px; font-size: 13px; color: var(--accent); margin-bottom: 14px; }
+  [data-theme="dark"] .hint { color: #8db8dc; }
+  .status { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+  .status.ok { background: var(--ok-soft); color: var(--ok); }
+  .kbd { background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; font-family: "SF Mono", Consolas, monospace; font-size: 11.5px; }
+  .sets { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .setchip { background: var(--purple-soft); color: var(--purple); padding: 3px 10px; border-radius: 12px; font-size: 12px; font-family: "SF Mono", Consolas, monospace; }
+  .chip { display: inline-block; background: var(--accent-soft); color: var(--accent); padding: 2px 8px; border-radius: 10px; font-size: 11.5px; font-family: "SF Mono", Consolas, monospace; }
+
+  .flashcard { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 26px; min-height: 220px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+  .flashcard:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  .flashcard .front { font-size: 16px; }
+  .flashcard .back { font-size: 13.5px; line-height: 1.7; display: none; }
+  .flashcard.flipped .front { display: none; }
+  .flashcard.flipped .back { display: block; }
+  .flashcard .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+  .cert { background: var(--accent-soft); border-left: 3px solid var(--accent); padding: 8px 12px; border-radius: 4px; margin: 8px 0; }
+  .verify { background: var(--ok-soft); border-left: 3px solid var(--ok); padding: 8px 12px; border-radius: 4px; margin: 8px 0; }
+  .runtime { background: var(--warn-soft); border-left: 3px solid var(--warn); padding: 8px 12px; border-radius: 4px; margin: 8px 0; font-family: "SF Mono", Consolas, monospace; font-size: 12px; }
+  .progress { color: var(--muted); font-size: 13px; }
+
+  .tree { font-family: "SF Mono", Consolas, monospace; font-size: 13px; white-space: pre; line-height: 1.5; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px; max-height: 320px; overflow: auto; }
+
+  table.reftable { border-collapse: collapse; width: 100%; font-size: 13px; }
+  table.reftable th { background: var(--accent); color: white; padding: 8px 12px; text-align: left; font-weight: 500; }
+  table.reftable td { padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.reftable tr:nth-child(even) td { background: var(--bg); }
+
+  details { margin: 8px 0; }
+  summary { cursor: pointer; color: var(--accent); font-size: 13.5px; padding: 4px 0; }
+  summary:hover { text-decoration: underline; }
+  .mini-help { color: var(--muted); font-size: 12px; margin: 6px 0 12px; line-height: 1.6; }
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+  .speed-slider { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+  .speed-slider input { width: 100px; }
+
+  /* Game stat cards */
+  .game-header { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; font-family: "SF Mono", Consolas, monospace; }
+  .game-stat { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; min-width: 96px; }
+  .game-stat .num { font-size: 22px; font-weight: 600; color: var(--accent); }
+  .game-stat .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .game-canvas-wrap { position: relative; }
+  .game-overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.96); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; font-size: 18px; z-index: 5; padding: 20px; text-align: center; backdrop-filter: blur(4px); }
+  [data-theme="dark"] .game-overlay { background: rgba(30,30,35,0.96); }
+  .game-overlay.hidden { display: none; }
+  .game-overlay h3 { margin: 0; font-size: 28px; font-weight: 700; }
+  .game-overlay p { margin: 0; color: var(--muted); max-width: 400px; }
+
+  /* Trivia */
+  .trivia-card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 22px; }
+  .trivia-q { font-size: 16px; margin-bottom: 16px; line-height: 1.5; }
+  .trivia-options { display: grid; gap: 10px; }
+  .trivia-option { background: var(--panel); border: 2px solid var(--line); border-radius: 8px; padding: 12px 16px; cursor: pointer; font-size: 14px; text-align: left; font-family: inherit; color: var(--ink); transition: all 0.12s; }
+  .trivia-option:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); transform: translateX(2px); }
+  .trivia-option.correct { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); font-weight: 500; }
+  .trivia-option.wrong { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
+  .trivia-option:disabled { cursor: default; transform: none; }
+  .trivia-timer { font-family: "SF Mono", Consolas, monospace; font-size: 22px; color: var(--accent); }
+  .trivia-timer.urgent { color: var(--bad); font-weight: 700; animation: tick 0.5s infinite; }
+  @keyframes tick { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+  .leaderboard { font-family: "SF Mono", Consolas, monospace; font-size: 13px; }
+  .leaderboard .lb-row { padding: 8px 12px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
+  .leaderboard .lb-row:last-child { border-bottom: none; }
+  .leaderboard .rank { color: var(--muted); width: 32px; font-weight: 600; }
+  .leaderboard .lb-row:nth-child(1) .rank { color: gold; }
+  .leaderboard .lb-row:nth-child(2) .rank { color: silver; }
+  .leaderboard .lb-row:nth-child(3) .rank { color: #cd7f32; }
+  .leaderboard .name { color: var(--ink); flex: 1; }
+  .leaderboard .score { color: var(--accent); font-weight: 600; }
+  .diff-btn { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; background: var(--panel); border: 2px solid var(--line); border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 14px; color: var(--ink); width: 100%; text-align: left; transition: all 0.15s; }
+  .diff-btn:hover { border-color: var(--accent); background: var(--accent-soft); transform: translateX(4px); }
+  .diff-btn .label-big { font-weight: 600; }
+  .diff-btn .label-small { font-size: 12px; color: var(--muted); }
+
+  /* Achievements */
+  .achievements-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+  .ach { background: var(--panel); border: 1.5px solid var(--line); border-radius: 10px; padding: 14px; text-align: center; transition: all 0.2s; position: relative; }
+  .ach.unlocked { border-color: var(--ok); background: var(--ok-soft); }
+  .ach.unlocked .ach-icon { filter: none; transform: scale(1); }
+  .ach-icon { font-size: 36px; margin-bottom: 6px; filter: grayscale(1) opacity(0.4); transition: all 0.3s; }
+  .ach-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .ach-desc { font-size: 11px; color: var(--muted); line-height: 1.4; }
+  .ach-progress { color: var(--muted); font-size: 11px; margin-top: 4px; }
+
+  /* Achievement toast */
+  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--panel); border: 1.5px solid var(--ok); border-radius: 12px;
+    padding: 14px 18px; box-shadow: var(--shadow-lg); z-index: 90; display: flex; gap: 12px; align-items: center;
+    animation: toastIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); max-width: 320px; }
+  .toast.leaving { animation: toastOut 0.3s forwards; }
+  .toast-icon { font-size: 36px; }
+  .toast-title { font-weight: 600; font-size: 13px; color: var(--ok); text-transform: uppercase; letter-spacing: 0.5px; }
+  .toast-body { font-size: 14px; }
+  .toast-desc { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  @keyframes toastIn { from { transform: translateX(120%); } to { transform: translateX(0); } }
+  @keyframes toastOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(120%); opacity: 0; } }
+
+  /* Confetti */
+  #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 95; }
+
+  /* Race mode */
+  .race-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .race-grid > div { display: flex; flex-direction: column; }
+  .race-grid h3 { margin: 0 0 8px; font-size: 15px; color: var(--accent); display: flex; align-items: center; gap: 8px; }
+  .race-grid .race-stat { font-family: "SF Mono", Consolas, monospace; font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .race-winner { font-size: 18px; font-weight: 700; text-align: center; padding: 12px; border-radius: 8px; margin-top: 12px; }
+  .race-winner.prim { background: var(--accent-soft); color: var(--accent); }
+  .race-winner.kruskal { background: var(--purple-soft); color: var(--purple); }
+  .race-winner.tie { background: var(--warn-soft); color: var(--warn); }
+
+  /* Puzzle mode */
+  .puzzle-score { font-size: 24px; font-weight: 700; color: var(--accent); font-family: "SF Mono", Consolas, monospace; }
+  .puzzle-feedback { padding: 10px 14px; border-radius: 6px; font-size: 13.5px; margin: 8px 0; min-height: 44px; }
+  .puzzle-feedback.correct { background: var(--ok-soft); color: var(--ok); border-left: 3px solid var(--ok); }
+  .puzzle-feedback.wrong { background: var(--bad-soft); color: var(--bad); border-left: 3px solid var(--bad); }
+  .puzzle-feedback.neutral { background: var(--accent-soft); color: var(--accent); border-left: 3px solid var(--accent); }
+
+  /* Mobile */
+  @media (max-width: 700px) {
+    main { padding: 14px 12px 50px; }
+    header { padding: 12px 14px 6px; }
+    nav { padding: 0 12px; }
+    nav button { padding: 9px 11px; font-size: 12px; }
+    .panel { padding: 12px; }
+    .flex { flex-direction: column; gap: 12px; }
+    .race-grid { grid-template-columns: 1fr; }
+    .toolbar { gap: 6px; }
+    .toolbar label, .toolbar button { font-size: 12px; }
+    header .title-block h1 { font-size: 16px; }
+    header .title-block p { font-size: 11px; }
+    h2 { font-size: 15px; }
+    #canvas, #race-canvas-left, #race-canvas-right, #puzzle-canvas { height: 300px; }
+    #maze-canvas { height: 440px; }
+    .game-header { gap: 6px; }
+    .game-stat { padding: 6px 10px; min-width: 72px; }
+    .game-stat .num { font-size: 16px; }
+    .game-stat .lbl { font-size: 9.5px; }
+    .trivia-q { font-size: 14px; }
+    .trivia-option { padding: 10px 12px; font-size: 13px; }
+    .tree { font-size: 11px; }
+    #splash h1 { font-size: 34px; }
+    #splash .subtitle { font-size: 15px; }
+    .toast { bottom: 14px; right: 14px; left: 14px; max-width: none; }
+    .achievements-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="splash">
+  <div class="emoji-row">
+    <span>🐭</span><span>🐈</span><span>🌲</span><span>🏆</span>
+  </div>
+  <h1>CSE2331</h1>
+  <div class="subtitle">Final Review Playground</div>
+  <div class="course">GRAPHS · MST · SHORTEST PATHS · UNION-FIND · NP-C</div>
+  <button class="cta" id="splash-start">Let's Go →</button>
+</div>
+<canvas id="confetti"></canvas>
+
+<header>
+  <div class="title-block">
+    <h1>🎯 CSE2331 Playground</h1>
+    <p>Interactive study tools for the final exam</p>
+  </div>
+  <div class="controls">
+    <button class="icon-btn" id="toggle-audio" title="Toggle sound" aria-label="Toggle sound">🔊</button>
+    <button class="icon-btn" id="toggle-theme" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button>
+  </div>
+</header>
+
+<nav>
+  <button data-tab="chase" class="active">🐭 Chase</button>
+  <button data-tab="trivia">🏆 Trivia</button>
+  <button data-tab="race">🏁 Race</button>
+  <button data-tab="puzzle">🧩 Puzzle</button>
+  <button data-tab="graph">Graph Lab</button>
+  <button data-tab="unionfind">Union-Find</button>
+  <button data-tab="npc">NP-C Cards</button>
+  <button data-tab="achievements">🏅 Badges</button>
+  <button data-tab="reference">📚 Ref</button>
+</nav>
+
+<main>
+
+<section id="tab-chase" class="active">
+  <div class="hint">
+    <strong>🐭 You are the mouse.</strong> Survive as long as you can. Maze generated by <strong>Kruskal's algorithm</strong>. Move with <span class="kbd">← ↑ → ↓</span> or <span class="kbd">W A S D</span>. Pick a dumb AI to see greedy fail; pick Dijkstra to see optimal pathfinding.
+  </div>
+  <div class="game-header">
+    <div class="game-stat"><div class="num" id="chase-score">0</div><div class="lbl">Seconds</div></div>
+    <div class="game-stat"><div class="num" id="chase-cheese">0</div><div class="lbl">Cheese</div></div>
+    <div class="game-stat"><div class="num" id="chase-best">0</div><div class="lbl">All-time best</div></div>
+    <div class="game-stat"><div class="num" id="chase-algo-name" style="font-size: 13px;">—</div><div class="lbl">Cat AI</div></div>
+  </div>
+  <div class="panel">
+    <div class="toolbar">
+      <label>Cat AI:
+        <select id="chase-algo">
+          <option value="random">Random (trivial)</option>
+          <option value="greedy">Greedy (gets stuck)</option>
+          <option value="bfs">BFS (hard)</option>
+          <option value="dijkstra" selected>Dijkstra 🎓 (nightmare)</option>
+        </select>
+      </label>
+      <label>Size:
+        <select id="chase-size">
+          <option value="15">Small</option>
+          <option value="21" selected>Medium</option>
+          <option value="27">Large</option>
+        </select>
+      </label>
+      <label>Speed:
+        <select id="chase-speed">
+          <option value="500">Slow</option>
+          <option value="350" selected>Normal</option>
+          <option value="220">Fast</option>
+          <option value="140">Nightmare</option>
+        </select>
+      </label>
+      <button class="btn" id="chase-start">New game</button>
+      <button class="btn secondary" id="chase-pause">Pause</button>
+      <label><input type="checkbox" id="chase-show-path" checked /> Show planned path</label>
+    </div>
+  </div>
+  <div class="game-canvas-wrap">
+    <canvas id="maze-canvas"></canvas>
+    <div class="game-overlay" id="chase-overlay">
+      <h3>🐭 Ready to play?</h3>
+      <p>Pick a cat AI above, then click <strong>New game</strong>. Eat 🧀 for +10 seconds. Avoid the cat!</p>
+    </div>
+  </div>
+  <div class="flex" style="margin-top: 18px;">
+    <div class="col">
+      <div class="panel">
+        <h2>🎮 Controls</h2>
+        <ul style="font-size: 13px; line-height: 1.8; padding-left: 20px;">
+          <li><span class="kbd">Arrow keys</span> or <span class="kbd">W A S D</span> to move</li>
+          <li>🧀 Cheese: +10 seconds to score</li>
+          <li>Blue cells = cat's planned path</li>
+          <li>Gray cells = cells cat explored planning</li>
+        </ul>
+      </div>
+    </div>
+    <div class="col">
+      <div class="panel">
+        <h2>🧠 Algorithms</h2>
+        <ul style="font-size: 13px; line-height: 1.8; padding-left: 20px;">
+          <li><strong>Random:</strong> random neighbor. Easy.</li>
+          <li><strong>Greedy:</strong> bee-lines ignoring walls. Dead ends trap it.</li>
+          <li><strong>BFS:</strong> shortest path in hops.</li>
+          <li><strong>Dijkstra:</strong> optimal pathfinding. Brutal.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="tab-trivia">
+  <div class="hint">
+    <strong>🏆 Test yourself under time pressure.</strong> 15 questions, faster = more points, streak multiplier active. Top scores saved locally.
+  </div>
+
+  <div id="trivia-home">
+    <div class="panel">
+      <h2>Choose difficulty</h2>
+      <div style="display: grid; gap: 10px; max-width: 520px;">
+        <button class="diff-btn" data-difficulty="easy"><span><div class="label-big">🟢 Easy</div><div class="label-small">30s per question • Definitions</div></span><span class="chip">×1 score</span></button>
+        <button class="diff-btn" data-difficulty="medium"><span><div class="label-big">🟡 Medium</div><div class="label-small">20s per question • Concepts</div></span><span class="chip">×2 score</span></button>
+        <button class="diff-btn" data-difficulty="hard"><span><div class="label-big">🔴 Hard</div><div class="label-small">12s per question • Traps</div></span><span class="chip">×4 score</span></button>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>🏅 Leaderboard</h2>
+      <div class="leaderboard" id="leaderboard"></div>
+      <div class="row" style="margin-top: 12px;">
+        <button class="btn secondary" id="clear-leaderboard">Clear leaderboard</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="trivia-game" style="display: none;">
+    <div class="game-header">
+      <div class="game-stat"><div class="num" id="trivia-score">0</div><div class="lbl">Score</div></div>
+      <div class="game-stat"><div class="num" id="trivia-streak">0</div><div class="lbl">Streak</div></div>
+      <div class="game-stat"><div class="num" id="trivia-qnum">1/15</div><div class="lbl">Question</div></div>
+      <div class="game-stat"><div class="num trivia-timer" id="trivia-timer">30</div><div class="lbl">Seconds</div></div>
+    </div>
+    <div class="trivia-card">
+      <div class="trivia-q" id="trivia-question"></div>
+      <div class="trivia-options" id="trivia-options"></div>
+      <div style="margin-top: 14px; color: var(--muted); font-size: 13px;" id="trivia-feedback"></div>
+    </div>
+    <div class="row" style="margin-top: 14px;">
+      <button class="btn secondary" id="trivia-quit">Quit to menu</button>
+    </div>
+  </div>
+
+  <div id="trivia-results" style="display: none;">
+    <div class="panel" style="text-align: center; padding: 40px;">
+      <h2 id="trivia-result-title" style="font-size: 28px; margin-bottom: 8px;">Round complete!</h2>
+      <div style="font-size: 15px; color: var(--muted); margin-bottom: 20px;" id="trivia-result-summary"></div>
+      <div style="font-size: 48px; font-weight: 700; color: var(--accent); margin-bottom: 20px;" id="trivia-result-score"></div>
+      <div class="row" style="justify-content: center;">
+        <input id="trivia-name" placeholder="Your name" maxlength="20" />
+        <button class="btn big" id="trivia-save">Save score</button>
+      </div>
+      <div class="row" style="justify-content: center; margin-top: 18px;">
+        <button class="btn secondary" id="trivia-play-again">Play again</button>
+        <button class="btn secondary" id="trivia-back-home">Back to menu</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="tab-race">
+  <div class="hint">
+    <strong>🏁 Watch Prim vs Kruskal race on the same graph.</strong> Both algorithms produce the same MST (when weights are distinct) but in different orders. See which "finishes" first and how they build differently.
+  </div>
+  <div class="panel">
+    <div class="toolbar">
+      <label>Graph:
+        <select id="race-preset">
+          <option value="small">Small (5 vertices)</option>
+          <option value="medium" selected>Medium (7 vertices)</option>
+          <option value="practice">Practice (8 vertices)</option>
+          <option value="random">Random</option>
+        </select>
+      </label>
+      <label>Speed:
+        <select id="race-speed">
+          <option value="1400">Slow</option>
+          <option value="800" selected>Normal</option>
+          <option value="400">Fast</option>
+          <option value="150">Turbo</option>
+        </select>
+      </label>
+      <label>Prim start:
+        <select id="race-prim-start"></select>
+      </label>
+      <button class="btn" id="race-start">▶ Start race</button>
+      <button class="btn secondary" id="race-reset">Reset</button>
+    </div>
+  </div>
+
+  <div class="race-grid">
+    <div>
+      <div class="panel">
+        <h3>🌱 Prim's Algorithm</h3>
+        <canvas id="race-canvas-left"></canvas>
+        <div class="race-stat" id="race-prim-stat">Ready</div>
+      </div>
+    </div>
+    <div>
+      <div class="panel">
+        <h3>🔗 Kruskal's Algorithm</h3>
+        <canvas id="race-canvas-right"></canvas>
+        <div class="race-stat" id="race-kruskal-stat">Ready</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="race-winner-box"></div>
+
+  <div class="panel" style="margin-top: 16px;">
+    <h2>Race log</h2>
+    <div class="log" id="race-log"></div>
+  </div>
+</section>
+
+<section id="tab-puzzle">
+  <div class="hint">
+    <strong>🧩 Be the Algorithm.</strong> A graph appears. Click vertices in the order the algorithm would discover them. Instant feedback — green if right, red if wrong. Build intuition for exactly how the exam will grade you.
+  </div>
+  <div class="panel">
+    <div class="toolbar">
+      <label>Algorithm:
+        <select id="puzzle-algo">
+          <option value="prim">Prim's MST</option>
+          <option value="dijkstra">Dijkstra (shortest path)</option>
+          <option value="kruskal">Kruskal's MST (click edges in order)</option>
+        </select>
+      </label>
+      <label>Difficulty:
+        <select id="puzzle-difficulty">
+          <option value="easy">Easy (5 vertices)</option>
+          <option value="medium" selected>Medium (7 vertices)</option>
+          <option value="hard">Hard (9 vertices)</option>
+        </select>
+      </label>
+      <button class="btn" id="puzzle-new">New puzzle</button>
+      <button class="btn secondary" id="puzzle-hint">Hint</button>
+      <button class="btn secondary" id="puzzle-reveal">Reveal</button>
+    </div>
+  </div>
+
+  <div class="flex">
+    <div class="col">
+      <div class="panel">
+        <canvas id="puzzle-canvas"></canvas>
+      </div>
+    </div>
+    <div class="col">
+      <div class="panel">
+        <h2>Your answer</h2>
+        <div class="puzzle-score" id="puzzle-score">0 / 0</div>
+        <div class="puzzle-feedback neutral" id="puzzle-feedback">Click "New puzzle" to start.</div>
+        <div style="font-size: 13px; margin-top: 10px;">
+          <strong>Your sequence:</strong>
+          <div id="puzzle-sequence" style="font-family: 'SF Mono', Consolas, monospace; font-size: 14px; margin-top: 6px; padding: 8px; background: var(--bg); border-radius: 6px; min-height: 30px;">—</div>
+        </div>
+        <div style="margin-top: 14px; font-size: 13px; color: var(--muted);" id="puzzle-task"></div>
+      </div>
+      <div class="panel">
+        <h2>📊 Your stats</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div><div style="font-size: 12px; color: var(--muted);">Puzzles solved</div><div style="font-size: 20px; font-weight: 600; color: var(--accent);" id="puzzle-stat-solved">0</div></div>
+          <div><div style="font-size: 12px; color: var(--muted);">Perfect runs</div><div style="font-size: 20px; font-weight: 600; color: var(--ok);" id="puzzle-stat-perfect">0</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="tab-graph">
+  <div class="hint">
+    Click empty space to add a vertex. Click two vertices to create an edge. Drag to move. Right-click to delete. Or pick a preset.
+  </div>
+  <div class="panel">
+    <div class="toolbar">
+      <label>Preset:
+        <select id="preset">
+          <option value="">— custom —</option>
+          <option value="small" selected>Small (5)</option>
+          <option value="medium">Medium (7)</option>
+          <option value="practice">Practice (8)</option>
+        </select>
+      </label>
+      <button class="btn secondary" id="clear-graph">Clear</button>
+      <span style="flex: 1"></span>
+      <span class="status ok">Ready</span>
+    </div>
+    <canvas id="canvas" class="crosshair"></canvas>
+  </div>
+  <div class="flex">
+    <div class="col">
+      <div class="panel">
+        <h2>Algorithm</h2>
+        <div class="row">
+          <label>Algorithm:
+            <select id="algo">
+              <option value="prim">Prim's MST</option>
+              <option value="kruskal">Kruskal's MST</option>
+              <option value="dijkstra">Dijkstra</option>
+            </select>
+          </label>
+          <label id="start-label">Start: <select id="start-vertex"></select></label>
+        </div>
+        <div class="row">
+          <button class="btn" id="run">Step through</button>
+          <button class="btn secondary" id="step">Next ▶</button>
+          <button class="btn secondary" id="autoplay">Auto-play</button>
+          <button class="btn secondary" id="reset-algo">Reset</button>
+        </div>
+        <div class="speed-slider" style="margin-top: 8px;">Speed <input type="range" id="speed" min="300" max="2500" value="1200" step="100" /></div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="panel">
+        <h2>State</h2>
+        <div id="state-display"><div class="mini-help">Click "Step through" to begin.</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel"><h2>Log</h2><div class="log" id="log"></div></div>
+</section>
+
+<section id="tab-unionfind">
+  <div class="hint">Pick an implementation, type operations, watch trees update.</div>
+  <div class="panel">
+    <div class="toolbar">
+      <label>Implementation:
+        <select id="uf-impl">
+          <option value="tree-height">UnionByHeight</option>
+          <option value="tree-height-pc">UnionByHeight + path compression</option>
+          <option value="tree-basic">Basic Union</option>
+        </select>
+      </label>
+      <label>Elements: <input id="uf-elements" value="x1,x2,x3,x4,x5,x6,x7,x8,x9,x10" size="36" /></label>
+      <button class="btn secondary" id="uf-init">Initialize</button>
+    </div>
+  </div>
+  <div class="flex">
+    <div class="col">
+      <div class="panel">
+        <h2>Operations</h2>
+        <div class="row">
+          <button class="btn secondary" id="uf-op-union">Union(x, y)</button>
+          <button class="btn secondary" id="uf-op-find">FindSet(x)</button>
+        </div>
+        <textarea id="uf-commands" rows="6" style="width:100%; font-family: 'SF Mono', Consolas, monospace; font-size: 13px; padding: 8px; border: 1px solid var(--line); border-radius: 6px;" placeholder="Union(x1, x2)&#10;Union(x3, x4)&#10;FindSet(x1)"></textarea>
+        <div class="row" style="margin-top: 10px;">
+          <button class="btn" id="uf-run">Run all</button>
+          <button class="btn secondary" id="uf-clear">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="panel"><h2>Current trees</h2><div class="tree" id="uf-tree">(initialize first)</div></div>
+    </div>
+  </div>
+  <div class="panel"><h2>Log</h2><div class="log" id="uf-log"></div></div>
+</section>
+
+<section id="tab-npc">
+  <div class="hint">Flashcards for NP-Completeness. Click a card to flip.</div>
+  <div class="row">
+    <button class="btn secondary" id="npc-shuffle">🔀 Shuffle</button>
+    <button class="btn secondary" id="npc-prev">◀</button>
+    <button class="btn secondary" id="npc-next">▶</button>
+    <span class="progress" id="npc-progress">1 / 10</span>
+  </div>
+  <div class="flashcard" id="flashcard">
+    <div class="front"><div class="label">Problem</div><div id="card-front"></div></div>
+    <div class="back"><div class="label">Answer</div><div id="card-back"></div></div>
+  </div>
+  <div class="panel" style="margin-top: 18px;">
+    <h2>"Show it's in P" templates</h2>
+    <details><summary>Independent Set of FIXED size K</summary><div style="padding: 8px 0; font-size: 13px; line-height: 1.7;">Try every subset: O(n^K). K constant → polynomial. <strong>In P.</strong><div class="runtime">K in input → not polynomial → NP-Complete.</div></div></details>
+    <details><summary>Euler circuit</summary><div style="padding: 8px 0; font-size: 13px; line-height: 1.7;">G connected + every vertex even degree. O(n+m). <strong>In P.</strong></div></details>
+    <details><summary>Bipartite check</summary><div style="padding: 8px 0; font-size: 13px; line-height: 1.7;">BFS, alternate colors. O(n+m). <strong>In P.</strong></div></details>
+    <details><summary>Maximum matching</summary><div style="padding: 8px 0; font-size: 13px; line-height: 1.7;">Blossom algorithm. <strong>In P.</strong><div class="runtime">VC is NPC, Matching is P. Don't confuse.</div></div></details>
+  </div>
+</section>
+
+<section id="tab-achievements">
+  <div class="hint">
+    <strong>🏅 Achievements.</strong> Unlock by using the playground. Stats save locally. Try to get them all!
+  </div>
+
+  <div class="panel">
+    <h2>Progress: <span id="ach-progress">0 / 12</span></h2>
+    <div class="achievements-grid" id="ach-grid"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Credits</h2>
+    <p style="font-size: 13.5px; line-height: 1.7; color: var(--muted);">
+      Built for <strong style="color: var(--accent);">CSE 2331</strong> at Ohio State. Special thanks to <strong style="color: var(--accent);">Nick</strong> — a good prof making us actually do problems like this. Spring 2026.
+    </p>
+    <p style="font-size: 12.5px; color: var(--muted); margin-top: 8px;">
+      All progress is stored in your browser. Nothing is sent anywhere. Clear data from the Badges tab → Reset button below.
+    </p>
+    <div class="row" style="margin-top: 12px;">
+      <button class="btn secondary" id="reset-achievements">Reset all progress</button>
+    </div>
+  </div>
+</section>
+
+<section id="tab-reference">
+  <div class="panel">
+    <h2>Running-time summary</h2>
+    <table class="reftable">
+      <tr><th>Algorithm</th><th>Array version</th><th>With min-heap</th></tr>
+      <tr><td>Graph traversal (every edge)</td><td><span class="chip">Θ(n + m)</span></td><td>—</td></tr>
+      <tr><td>Prim's MST</td><td><span class="chip">Θ(n² + m)</span></td><td><span class="chip">O((n+m) log n)</span></td></tr>
+      <tr><td>Kruskal's MST</td><td colspan="2"><span class="chip">O(m log m)</span></td></tr>
+      <tr><td>Dijkstra</td><td><span class="chip">Θ(n² + m)</span></td><td><span class="chip">O((n+m) log n)</span></td></tr>
+      <tr><td>FindSet (UnionByHeight)</td><td colspan="2"><span class="chip">O(log n)</span></td></tr>
+      <tr><td>UF + path compression</td><td colspan="2"><span class="chip">O(α(n))</span> amortized</td></tr>
+    </table>
+  </div>
+  <div class="panel">
+    <h2>MST vs Shortest-Path Tree</h2>
+    <table class="reftable">
+      <tr><th>—</th><th>MST</th><th>SPT</th></tr>
+      <tr><td>Optimizes</td><td>Total edge weight</td><td>Distance from source</td></tr>
+      <tr><td>Start matters?</td><td>No</td><td>Yes</td></tr>
+      <tr><td>Negative weights?</td><td>Yes</td><td>No (Dijkstra breaks)</td></tr>
+      <tr><td>Algorithm</td><td>Prim / Kruskal</td><td>Dijkstra</td></tr>
+    </table>
+  </div>
+  <div class="panel">
+    <h2>Complexity classes</h2>
+    <table class="reftable">
+      <tr><th>Class</th><th>Definition</th><th>How to show</th></tr>
+      <tr><td><strong>P</strong></td><td>Solvable in poly time</td><td>Give O(n^k) algorithm</td></tr>
+      <tr><td><strong>NP</strong></td><td>Verifiable in poly time</td><td>Certificate + verifier</td></tr>
+      <tr><td><strong>NP-C</strong></td><td>NP + every NP reduces to it</td><td>In NP + NPC reduces to it</td></tr>
+      <tr><td><strong>NP-Hard</strong></td><td>Every NP reduces to it</td><td>Reduction only</td></tr>
+    </table>
+  </div>
+  <div class="panel">
+    <h2>Traps to watch for</h2>
+    <ul style="font-size: 13px; line-height: 1.9; padding-left: 20px;">
+      <li><strong>MST vs SPT:</strong> Different problems entirely.</li>
+      <li><strong>Dijkstra + negative edges:</strong> Breaks, even without cycles.</li>
+      <li><strong>Negative cycle on path:</strong> No shortest path exists.</li>
+      <li><strong>K fixed vs K in input:</strong> IS of 5 is P; IS of K is NPC.</li>
+      <li><strong>Matching vs VC:</strong> Matching is P, VC is NPC.</li>
+      <li><strong>Path compression:</strong> Only one path flattens.</li>
+      <li><strong>UBH tie:</strong> Second arg under first, first.height += 1.</li>
+    </ul>
+  </div>
+</section>
+
+</main>
+<div id="toast-container"></div>
+<script>
+
+// ============================================================
+// CSE2331 Final Review Playground - v3
+// ============================================================
+
+// ============================================================ Splash
+(function() {
+  const splash = document.getElementById('splash');
+  const startBtn = document.getElementById('splash-start');
+  function dismiss() {
+    splash.classList.add('hiding');
+    setTimeout(() => { splash.style.display = 'none'; }, 600);
+  }
+  startBtn.addEventListener('click', () => { initAudio(); dismiss(); });
+  // Auto-dismiss after 6s in case they're idle
+  setTimeout(() => { if (!splash.classList.contains('hiding')) { /* keep it */ } }, 6000);
+})();
+
+// ============================================================ Theme
+(function() {
+  const saved = localStorage.getItem('cse2331_theme') || 'light';
+  if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+  const btn = document.getElementById('toggle-theme');
+  btn.textContent = saved === 'dark' ? '☀️' : '🌙';
+  btn.onclick = () => {
+    const cur = document.documentElement.getAttribute('data-theme');
+    if (cur === 'dark') {
+      document.documentElement.removeAttribute('data-theme');
+      localStorage.setItem('cse2331_theme', 'light');
+      btn.textContent = '🌙';
+    } else {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      localStorage.setItem('cse2331_theme', 'dark');
+      btn.textContent = '☀️';
+    }
+    // Redraw canvases with new theme
+    setTimeout(() => {
+      if (typeof drawGraph === 'function') drawGraph();
+      if (typeof drawMaze === 'function') drawMaze();
+      if (typeof drawRaceCanvases === 'function') drawRaceCanvases();
+      if (typeof drawPuzzleCanvas === 'function') drawPuzzleCanvas();
+    }, 0);
+  };
+})();
+
+// ============================================================ Tab switching
+document.querySelectorAll('nav button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab !== 'chase' && typeof pauseChase === 'function') pauseChase();
+    if (btn.dataset.tab !== 'trivia' && typeof triviaState !== 'undefined' && triviaState) quitTrivia();
+    requestAnimationFrame(() => {
+      if (btn.dataset.tab === 'graph') { resizeCanvas(); drawGraph(); }
+      if (btn.dataset.tab === 'chase') { resizeMazeCanvas(); drawMaze(); }
+      if (btn.dataset.tab === 'race') { resizeRaceCanvases(); drawRaceCanvases(); }
+      if (btn.dataset.tab === 'puzzle') { resizePuzzleCanvas(); drawPuzzleCanvas(); }
+      if (btn.dataset.tab === 'unionfind') { renderUFTrees(); }
+      if (btn.dataset.tab === 'achievements') { renderAchievements(); }
+    });
+  });
+});
+
+// ============================================================ Confetti
+const confettiCanvas = document.getElementById('confetti');
+const confettiCtx = confettiCanvas.getContext('2d');
+let confettiParticles = [];
+let confettiRaf = null;
+
+function resizeConfetti() {
+  confettiCanvas.width = window.innerWidth;
+  confettiCanvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeConfetti);
+resizeConfetti();
+
+function launchConfetti(count) {
+  count = count || 80;
+  const colors = ['#185fa5', '#534ab7', '#3b6d11', '#ba7517', '#a32d2d', '#d85a30', '#0f6e56'];
+  for (let i = 0; i < count; i++) {
+    confettiParticles.push({
+      x: window.innerWidth / 2 + (Math.random() - 0.5) * 200,
+      y: window.innerHeight / 2 + (Math.random() - 0.5) * 50,
+      vx: (Math.random() - 0.5) * 14,
+      vy: Math.random() * -12 - 4,
+      size: 6 + Math.random() * 6,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      rot: Math.random() * Math.PI * 2,
+      vr: (Math.random() - 0.5) * 0.3,
+      life: 180,
+    });
+  }
+  if (!confettiRaf) confettiLoop();
+}
+
+function confettiLoop() {
+  confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+  for (let i = confettiParticles.length - 1; i >= 0; i--) {
+    const p = confettiParticles[i];
+    p.vy += 0.35; // gravity
+    p.vx *= 0.995;
+    p.x += p.vx;
+    p.y += p.vy;
+    p.rot += p.vr;
+    p.life--;
+    if (p.life <= 0 || p.y > confettiCanvas.height + 50) {
+      confettiParticles.splice(i, 1);
+      continue;
+    }
+    confettiCtx.save();
+    confettiCtx.translate(p.x, p.y);
+    confettiCtx.rotate(p.rot);
+    confettiCtx.fillStyle = p.color;
+    confettiCtx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+    confettiCtx.restore();
+  }
+  if (confettiParticles.length > 0) {
+    confettiRaf = requestAnimationFrame(confettiLoop);
+  } else {
+    confettiRaf = null;
+  }
+}
+
+// ============================================================ Toast notifications
+function showToast(title, body, desc, icon) {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.innerHTML = '<div class="toast-icon">' + (icon || '🏅') + '</div>' +
+    '<div><div class="toast-title">' + title + '</div>' +
+    '<div class="toast-body">' + body + '</div>' +
+    (desc ? '<div class="toast-desc">' + desc + '</div>' : '') + '</div>';
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add('leaving');
+    setTimeout(() => toast.remove(), 300);
+  }, 4000);
+}
+
+// ============================================================ Audio (Web Audio API - synthesized)
+let audioCtx = null;
+let audioEnabled = localStorage.getItem('cse2331_audio') !== 'off';
+
+function initAudio() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch (e) { console.warn('Audio not supported'); }
+  }
+}
+
+// Update icon
+(function() {
+  const btn = document.getElementById('toggle-audio');
+  btn.textContent = audioEnabled ? '🔊' : '🔇';
+  btn.onclick = () => {
+    audioEnabled = !audioEnabled;
+    localStorage.setItem('cse2331_audio', audioEnabled ? 'on' : 'off');
+    btn.textContent = audioEnabled ? '🔊' : '🔇';
+    if (audioEnabled) { initAudio(); playSound('click'); }
+  };
+})();
+
+function playTone(freq, dur, type, gain) {
+  if (!audioEnabled || !audioCtx) return;
+  try {
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.value = freq;
+    g.gain.value = 0;
+    g.gain.linearRampToValueAtTime(gain || 0.15, audioCtx.currentTime + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+    osc.connect(g);
+    g.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + dur);
+  } catch (e) { /* no-op */ }
+}
+
+function playSound(name) {
+  if (!audioEnabled) return;
+  if (!audioCtx) initAudio();
+  if (!audioCtx) return;
+  switch (name) {
+    case 'click':
+      playTone(800, 0.05, 'square', 0.08);
+      break;
+    case 'cheese':
+      playTone(800, 0.08, 'sine', 0.2);
+      setTimeout(() => playTone(1200, 0.12, 'sine', 0.2), 50);
+      break;
+    case 'caught':
+      playTone(200, 0.15, 'sawtooth', 0.25);
+      setTimeout(() => playTone(140, 0.25, 'sawtooth', 0.2), 120);
+      break;
+    case 'correct':
+      playTone(660, 0.08, 'sine', 0.18);
+      setTimeout(() => playTone(880, 0.15, 'sine', 0.18), 60);
+      break;
+    case 'wrong':
+      playTone(220, 0.18, 'square', 0.15);
+      break;
+    case 'timeup':
+      playTone(400, 0.1, 'triangle', 0.15);
+      setTimeout(() => playTone(300, 0.1, 'triangle', 0.15), 100);
+      setTimeout(() => playTone(200, 0.2, 'triangle', 0.15), 200);
+      break;
+    case 'achievement':
+      playTone(523, 0.1, 'sine', 0.18);
+      setTimeout(() => playTone(659, 0.1, 'sine', 0.18), 90);
+      setTimeout(() => playTone(784, 0.1, 'sine', 0.18), 180);
+      setTimeout(() => playTone(1047, 0.25, 'sine', 0.18), 270);
+      break;
+    case 'victory':
+      [523, 659, 784, 1047].forEach((f, i) => {
+        setTimeout(() => playTone(f, 0.15, 'sine', 0.15), i * 80);
+      });
+      setTimeout(() => playTone(1047, 0.3, 'sine', 0.18), 400);
+      break;
+    case 'step':
+      playTone(440, 0.04, 'square', 0.06);
+      break;
+    case 'maze':
+      // swoosh
+      const dur = 0.4;
+      for (let i = 0; i < 5; i++) {
+        setTimeout(() => playTone(200 + i * 120, 0.05, 'sine', 0.08), i * 30);
+      }
+      break;
+  }
+}
+
+// ============================================================ Achievements
+const achievementsList = [
+  { id: 'first_game', icon: '🐭', name: 'First Squeak', desc: 'Play your first chase game' },
+  { id: 'survive_30', icon: '⏱️', name: 'Thirty Seconds', desc: 'Survive 30 seconds in chase' },
+  { id: 'survive_60', icon: '🏃', name: 'Elusive', desc: 'Survive 60 seconds in chase' },
+  { id: 'beat_dijkstra', icon: '🎓', name: 'Outsmart Dijkstra', desc: 'Survive 45s against Dijkstra AI' },
+  { id: 'cheese_hoarder', icon: '🧀', name: 'Cheese Hoarder', desc: 'Eat 10 cheeses in a single game' },
+  { id: 'trivia_first', icon: '📝', name: 'Quiz Me', desc: 'Finish a trivia round' },
+  { id: 'trivia_perfect', icon: '💯', name: 'Perfect Round', desc: '15/15 on any trivia difficulty' },
+  { id: 'trivia_hard', icon: '🔥', name: 'Hard Mode Champ', desc: 'Score 2000+ on Hard trivia' },
+  { id: 'race_winner', icon: '🏁', name: 'At the Races', desc: 'Watch a Prim vs Kruskal race' },
+  { id: 'puzzle_solve', icon: '🧩', name: 'Algorithm Apprentice', desc: 'Solve your first puzzle' },
+  { id: 'puzzle_perfect', icon: '⭐', name: 'Flawless', desc: 'Solve 3 puzzles with no mistakes' },
+  { id: 'explorer', icon: '🗺️', name: 'Explorer', desc: 'Visit all 9 tabs' },
+];
+
+function getAchievements() {
+  try { return JSON.parse(localStorage.getItem('cse2331_achievements') || '{}'); }
+  catch { return {}; }
+}
+function saveAchievements(a) {
+  localStorage.setItem('cse2331_achievements', JSON.stringify(a));
+}
+
+function unlockAchievement(id) {
+  const achs = getAchievements();
+  if (achs[id]) return;
+  achs[id] = { unlockedAt: Date.now() };
+  saveAchievements(achs);
+  const def = achievementsList.find(a => a.id === id);
+  if (def) {
+    showToast('Achievement Unlocked!', def.name, def.desc, def.icon);
+    playSound('achievement');
+    launchConfetti(30);
+  }
+  renderAchievements();
+}
+
+function getStats() {
+  try { return JSON.parse(localStorage.getItem('cse2331_stats') || '{}'); }
+  catch { return {}; }
+}
+function saveStats(s) {
+  localStorage.setItem('cse2331_stats', JSON.stringify(s));
+}
+function bumpStat(key, v) {
+  const s = getStats();
+  s[key] = (s[key] || 0) + (v || 1);
+  saveStats(s);
+}
+
+function renderAchievements() {
+  const achs = getAchievements();
+  const grid = document.getElementById('ach-grid');
+  if (!grid) return;
+  let unlocked = 0;
+  grid.innerHTML = achievementsList.map(a => {
+    const on = !!achs[a.id];
+    if (on) unlocked++;
+    return '<div class="ach ' + (on ? 'unlocked' : '') + '">' +
+      '<div class="ach-icon">' + a.icon + '</div>' +
+      '<div class="ach-name">' + a.name + '</div>' +
+      '<div class="ach-desc">' + a.desc + '</div>' +
+    '</div>';
+  }).join('');
+  document.getElementById('ach-progress').textContent = unlocked + ' / ' + achievementsList.length;
+}
+
+// Track tab visits for the Explorer badge
+const visitedTabs = new Set();
+document.querySelectorAll('nav button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    visitedTabs.add(btn.dataset.tab);
+    const stats = getStats();
+    stats.visitedTabs = [...new Set([...(stats.visitedTabs || []), ...visitedTabs])];
+    saveStats(stats);
+    if (stats.visitedTabs.length >= 9) unlockAchievement('explorer');
+  });
+});
+
+document.getElementById('reset-achievements').onclick = () => {
+  if (confirm('Reset all achievements, stats, leaderboard, and high scores? This cannot be undone.')) {
+    localStorage.removeItem('cse2331_achievements');
+    localStorage.removeItem('cse2331_stats');
+    localStorage.removeItem('cse2331_leaderboard');
+    localStorage.removeItem('cse2331_chase_best');
+    renderAchievements();
+    alert('All progress cleared.');
+  }
+};
+
+// ============================================================ CAT & MOUSE
+const mazeCanvas = document.getElementById('maze-canvas');
+const mazeCtx = mazeCanvas.getContext('2d');
+let maze = null, mouse = null, cat = null, cheeses = [];
+let chaseScore = 0, chaseCheese = 0;
+let chaseBest = parseInt(localStorage.getItem('cse2331_chase_best') || '0');
+let chaseInterval = null, catInterval = null, chasePaused = false, chaseActive = false;
+let catPlannedPath = [], catExploredCells = new Set();
+document.getElementById('chase-best').textContent = chaseBest;
+
+function getCss(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function resizeMazeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = mazeCanvas.getBoundingClientRect();
+  if (rect.width === 0) return;
+  mazeCanvas.width = rect.width * dpr;
+  mazeCanvas.height = rect.height * dpr;
+  mazeCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  drawMaze();
+}
+function cellKey(x, y) { return x + ',' + y; }
+
+function generateMaze(W, H) {
+  const cells = [];
+  for (let y = 0; y < H; y++) {
+    const row = [];
+    for (let x = 0; x < W; x++) row.push({ walls: { N: true, S: true, E: true, W: true } });
+    cells.push(row);
+  }
+  const walls = [];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (x < W - 1) walls.push({ x1: x, y1: y, x2: x + 1, y2: y, w: Math.random() });
+    if (y < H - 1) walls.push({ x1: x, y1: y, x2: x, y2: y + 1, w: Math.random() });
+  }
+  walls.sort((a, b) => a.w - b.w);
+  const parent = new Map();
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) parent.set(cellKey(x, y), cellKey(x, y));
+  function find(k) { while (parent.get(k) !== k) k = parent.get(k); return k; }
+  for (const w of walls) {
+    const k1 = cellKey(w.x1, w.y1), k2 = cellKey(w.x2, w.y2);
+    const r1 = find(k1), r2 = find(k2);
+    if (r1 === r2) continue;
+    parent.set(r1, r2);
+    if (w.x1 === w.x2) {
+      if (w.y2 > w.y1) { cells[w.y1][w.x1].walls.S = false; cells[w.y2][w.x2].walls.N = false; }
+      else { cells[w.y1][w.x1].walls.N = false; cells[w.y2][w.x2].walls.S = false; }
+    } else {
+      if (w.x2 > w.x1) { cells[w.y1][w.x1].walls.E = false; cells[w.y2][w.x2].walls.W = false; }
+      else { cells[w.y1][w.x1].walls.W = false; cells[w.y2][w.x2].walls.E = false; }
+    }
+  }
+  return { W, H, cells };
+}
+
+function mazeNeighbors(x, y) {
+  if (!maze) return [];
+  const c = maze.cells[y][x];
+  const out = [];
+  if (!c.walls.N && y > 0) out.push([x, y - 1]);
+  if (!c.walls.S && y < maze.H - 1) out.push([x, y + 1]);
+  if (!c.walls.E && x < maze.W - 1) out.push([x + 1, y]);
+  if (!c.walls.W && x > 0) out.push([x - 1, y]);
+  return out;
+}
+
+function drawMaze() {
+  if (!maze) {
+    // Draw idle state
+    const rect = mazeCanvas.getBoundingClientRect();
+    mazeCtx.clearRect(0, 0, rect.width, rect.height);
+    return;
+  }
+  const rect = mazeCanvas.getBoundingClientRect();
+  const cellSize = Math.min(rect.width / maze.W, rect.height / maze.H);
+  const offsetX = (rect.width - cellSize * maze.W) / 2;
+  const offsetY = (rect.height - cellSize * maze.H) / 2;
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  mazeCtx.clearRect(0, 0, rect.width, rect.height);
+  mazeCtx.fillStyle = isDark ? '#1e1e23' : '#ffffff';
+  mazeCtx.fillRect(0, 0, rect.width, rect.height);
+  if (document.getElementById('chase-show-path').checked) {
+    mazeCtx.fillStyle = isDark ? '#2a2a33' : '#f4f4f4';
+    for (const key of catExploredCells) {
+      const [x, y] = key.split(',').map(Number);
+      mazeCtx.fillRect(offsetX + x * cellSize, offsetY + y * cellSize, cellSize, cellSize);
+    }
+    mazeCtx.fillStyle = isDark ? '#2d4566' : '#cfe0f5';
+    for (const [x, y] of catPlannedPath) {
+      mazeCtx.fillRect(offsetX + x * cellSize, offsetY + y * cellSize, cellSize, cellSize);
+    }
+  }
+  for (const c of cheeses) {
+    const cx = offsetX + c.x * cellSize + cellSize / 2;
+    const cy = offsetY + c.y * cellSize + cellSize / 2;
+    mazeCtx.font = (cellSize * 0.6) + 'px system-ui';
+    mazeCtx.textAlign = 'center'; mazeCtx.textBaseline = 'middle';
+    mazeCtx.fillText('🧀', cx, cy);
+  }
+  mazeCtx.strokeStyle = isDark ? '#d3d1c7' : '#1f1f1c';
+  mazeCtx.lineWidth = 2;
+  for (let y = 0; y < maze.H; y++) for (let x = 0; x < maze.W; x++) {
+    const c = maze.cells[y][x];
+    const px = offsetX + x * cellSize, py = offsetY + y * cellSize;
+    if (c.walls.N) { mazeCtx.beginPath(); mazeCtx.moveTo(px, py); mazeCtx.lineTo(px + cellSize, py); mazeCtx.stroke(); }
+    if (c.walls.W) { mazeCtx.beginPath(); mazeCtx.moveTo(px, py); mazeCtx.lineTo(px, py + cellSize); mazeCtx.stroke(); }
+    if (y === maze.H - 1 && c.walls.S) { mazeCtx.beginPath(); mazeCtx.moveTo(px, py + cellSize); mazeCtx.lineTo(px + cellSize, py + cellSize); mazeCtx.stroke(); }
+    if (x === maze.W - 1 && c.walls.E) { mazeCtx.beginPath(); mazeCtx.moveTo(px + cellSize, py); mazeCtx.lineTo(px + cellSize, py + cellSize); mazeCtx.stroke(); }
+  }
+  if (mouse) {
+    const cx = offsetX + mouse.x * cellSize + cellSize / 2;
+    const cy = offsetY + mouse.y * cellSize + cellSize / 2;
+    mazeCtx.font = (cellSize * 0.7) + 'px system-ui';
+    mazeCtx.textAlign = 'center'; mazeCtx.textBaseline = 'middle';
+    mazeCtx.fillText('🐭', cx, cy);
+  }
+  if (cat) {
+    const cx = offsetX + cat.x * cellSize + cellSize / 2;
+    const cy = offsetY + cat.y * cellSize + cellSize / 2;
+    mazeCtx.font = (cellSize * 0.7) + 'px system-ui';
+    mazeCtx.textAlign = 'center'; mazeCtx.textBaseline = 'middle';
+    const algo = document.getElementById('chase-algo').value;
+    mazeCtx.fillText(algo === 'dijkstra' ? '🐈' : '🐈', cx, cy);
+    // Mortarboard for Dijkstra cat
+    if (algo === 'dijkstra') {
+      mazeCtx.font = (cellSize * 0.35) + 'px system-ui';
+      mazeCtx.fillText('🎓', cx + cellSize * 0.18, cy - cellSize * 0.28);
+    }
+  }
+}
+
+function spawnCheese() {
+  for (let tries = 0; tries < 40; tries++) {
+    const x = Math.floor(Math.random() * maze.W);
+    const y = Math.floor(Math.random() * maze.H);
+    if (Math.abs(x - mouse.x) + Math.abs(y - mouse.y) < 3) continue;
+    if (Math.abs(x - cat.x) + Math.abs(y - cat.y) < 3) continue;
+    if (cheeses.some(c => c.x === x && c.y === y)) continue;
+    cheeses.push({ x, y }); return;
+  }
+}
+
+function startChase() {
+  const W = parseInt(document.getElementById('chase-size').value);
+  const H = Math.floor(W * 11 / 15);
+  maze = generateMaze(W, H);
+  mouse = { x: 0, y: 0 };
+  cat = { x: W - 1, y: H - 1 };
+  cheeses = []; spawnCheese(); spawnCheese();
+  chaseScore = 0; chaseCheese = 0; chasePaused = false; chaseActive = true;
+  catPlannedPath = []; catExploredCells = new Set();
+  document.getElementById('chase-score').textContent = 0;
+  document.getElementById('chase-cheese').textContent = 0;
+  document.getElementById('chase-overlay').classList.add('hidden');
+  document.getElementById('chase-algo-name').textContent = document.getElementById('chase-algo').value;
+  document.getElementById('chase-pause').textContent = 'Pause';
+  if (chaseInterval) clearInterval(chaseInterval);
+  if (catInterval) clearInterval(catInterval);
+  chaseInterval = setInterval(() => {
+    if (chasePaused || !chaseActive) return;
+    chaseScore++;
+    document.getElementById('chase-score').textContent = chaseScore;
+    if (chaseScore === 30) unlockAchievement('survive_30');
+    if (chaseScore === 60) unlockAchievement('survive_60');
+    if (chaseScore === 45 && document.getElementById('chase-algo').value === 'dijkstra') unlockAchievement('beat_dijkstra');
+  }, 1000);
+  const catSpeed = parseInt(document.getElementById('chase-speed').value);
+  catInterval = setInterval(() => { if (chasePaused || !chaseActive) return; catMove(); }, catSpeed);
+  playSound('maze');
+  unlockAchievement('first_game');
+  bumpStat('games_played');
+  drawMaze();
+}
+
+function pauseChase() {
+  if (chaseActive) chasePaused = true;
+  const btn = document.getElementById('chase-pause');
+  if (btn) btn.textContent = 'Resume';
+}
+
+function endChase(reason) {
+  chaseActive = false;
+  if (chaseInterval) clearInterval(chaseInterval);
+  if (catInterval) clearInterval(catInterval);
+  const wasNewBest = chaseScore > chaseBest;
+  if (wasNewBest) {
+    chaseBest = chaseScore;
+    localStorage.setItem('cse2331_chase_best', String(chaseBest));
+    document.getElementById('chase-best').textContent = chaseBest;
+  }
+  if (reason === 'caught') playSound('caught');
+  if (wasNewBest && chaseScore > 15) launchConfetti(60);
+  const overlay = document.getElementById('chase-overlay');
+  overlay.innerHTML = '<h3>' + (reason === 'caught' ? '🐈 Got you!' : 'Game over') + '</h3>' +
+    '<p>Score: <strong>' + chaseScore + '</strong> seconds. Cheese: <strong>' + chaseCheese + '</strong>.</p>' +
+    (wasNewBest ? '<p style="color: var(--ok); font-weight: 600;">🎉 New personal best!</p>' : '<p>Best this session: <strong>' + chaseBest + '</strong></p>') +
+    '<button class="btn big" onclick="startChase()">Play again</button>';
+  overlay.classList.remove('hidden');
+}
+
+function catMove() {
+  if (!cat || !mouse || !maze) return;
+  const algo = document.getElementById('chase-algo').value;
+  let next = null;
+  if (algo === 'random') {
+    const ns = mazeNeighbors(cat.x, cat.y);
+    if (ns.length) next = ns[Math.floor(Math.random() * ns.length)];
+    catPlannedPath = []; catExploredCells = new Set();
+  } else if (algo === 'greedy') {
+    const ns = mazeNeighbors(cat.x, cat.y);
+    if (ns.length) {
+      ns.sort((a, b) => (Math.abs(a[0] - mouse.x) + Math.abs(a[1] - mouse.y)) - (Math.abs(b[0] - mouse.x) + Math.abs(b[1] - mouse.y)));
+      next = ns[0];
+    }
+    catPlannedPath = []; catExploredCells = new Set();
+  } else if (algo === 'bfs' || algo === 'dijkstra') {
+    const start = cellKey(cat.x, cat.y), goal = cellKey(mouse.x, mouse.y);
+    const visited = new Set([start]);
+    const parent = new Map();
+    const queue = [[cat.x, cat.y]];
+    let found = false;
+    while (queue.length) {
+      const [cx, cy] = queue.shift();
+      if (cx === mouse.x && cy === mouse.y) { found = true; break; }
+      for (const [nx, ny] of mazeNeighbors(cx, cy)) {
+        const k = cellKey(nx, ny);
+        if (visited.has(k)) continue;
+        visited.add(k);
+        parent.set(k, cellKey(cx, cy));
+        queue.push([nx, ny]);
+      }
+    }
+    catExploredCells = visited;
+    if (found) {
+      const path = [];
+      let cur = goal;
+      while (cur && cur !== start) {
+        const [x, y] = cur.split(',').map(Number);
+        path.push([x, y]);
+        cur = parent.get(cur);
+      }
+      path.reverse();
+      catPlannedPath = path;
+      if (path.length > 0) next = path[0];
+    }
+  }
+  if (next) { cat.x = next[0]; cat.y = next[1]; }
+  if (cat.x === mouse.x && cat.y === mouse.y) { drawMaze(); endChase('caught'); return; }
+  drawMaze();
+}
+
+function moveMouse(dx, dy) {
+  if (!chaseActive || chasePaused) return;
+  const nx = mouse.x + dx, ny = mouse.y + dy;
+  if (nx < 0 || ny < 0 || nx >= maze.W || ny >= maze.H) return;
+  const c = maze.cells[mouse.y][mouse.x];
+  if (dx === 1 && c.walls.E) return;
+  if (dx === -1 && c.walls.W) return;
+  if (dy === 1 && c.walls.S) return;
+  if (dy === -1 && c.walls.N) return;
+  mouse.x = nx; mouse.y = ny;
+  for (let i = 0; i < cheeses.length; i++) {
+    if (cheeses[i].x === nx && cheeses[i].y === ny) {
+      cheeses.splice(i, 1); chaseCheese++; chaseScore += 10;
+      playSound('cheese');
+      document.getElementById('chase-cheese').textContent = chaseCheese;
+      document.getElementById('chase-score').textContent = chaseScore;
+      if (chaseCheese >= 10) unlockAchievement('cheese_hoarder');
+      spawnCheese(); break;
+    }
+  }
+  if (cat.x === mouse.x && cat.y === mouse.y) { drawMaze(); endChase('caught'); return; }
+  drawMaze();
+}
+
+window.addEventListener('keydown', (e) => {
+  if (!document.getElementById('tab-chase').classList.contains('active')) return;
+  if (!chaseActive || chasePaused) return;
+  if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { e.preventDefault(); moveMouse(0, -1); }
+  else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') { e.preventDefault(); moveMouse(0, 1); }
+  else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { e.preventDefault(); moveMouse(-1, 0); }
+  else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { e.preventDefault(); moveMouse(1, 0); }
+});
+
+document.getElementById('chase-start').onclick = startChase;
+document.getElementById('chase-pause').onclick = () => {
+  if (!chaseActive) return;
+  chasePaused = !chasePaused;
+  document.getElementById('chase-pause').textContent = chasePaused ? 'Resume' : 'Pause';
+};
+
+// ============================================================ TRIVIA
+const triviaQuestions = [
+  { difficulty: 'easy', q: 'What does the Handshaking Lemma state?', opts: ['Σ deg(v) = 2m', 'Σ deg(v) = n', 'Σ deg(v) = m', 'deg(v) = m/n for every v'], answer: 0 },
+  { difficulty: 'easy', q: 'An adjacency list uses how much space?', opts: ['Θ(n)', 'Θ(m)', 'Θ(n + m)', 'Θ(n²)'], answer: 2 },
+  { difficulty: 'medium', q: 'A tree on n vertices has how many edges?', opts: ['n', 'n − 1', 'n + 1', 'n/2'], answer: 1 },
+  { difficulty: 'medium', q: 'Which is NOT equivalent to "G is a tree" (connected G)?', opts: ['Every edge is a bridge', '|E| = |V| − 1', 'G has a Hamiltonian path', 'Two vertices have a unique simple path'], answer: 2 },
+  { difficulty: 'easy', q: 'Does a connected graph always have an MST?', opts: ['Yes, always', 'No, never', 'Only if weights positive', 'Only if simple'], answer: 0 },
+  { difficulty: 'easy', q: 'Which is a greedy MST algorithm?', opts: ['Dijkstra', 'Prim', 'BFS', 'Floyd-Warshall'], answer: 1 },
+  { difficulty: 'medium', q: 'The MST is unique if and only if...', opts: ['graph is connected', 'all edge weights distinct', 'graph has no cycles', 'graph is simple'], answer: 1 },
+  { difficulty: 'medium', q: "Array Prim's runs in what time?", opts: ['Θ(n)', 'Θ(n log n)', 'Θ(n² + m)', 'Θ(n³)'], answer: 2 },
+  { difficulty: 'medium', q: "In Kruskal's, what do you do when an edge would create a cycle?", opts: ['Add it anyway', 'Skip it ("considered but ignored")', 'Halve weight and retry', 'Terminate'], answer: 1 },
+  { difficulty: 'hard', q: "Heap Prim is O((n+m) log n). For a DENSE graph (m ≈ n²), how does it compare to array Prim?", opts: ['Heap strictly better', 'Heap strictly worse (Θ(n² log n) vs Θ(n²))', 'Identical', 'Heap wins by log n'], answer: 1 },
+  { difficulty: 'hard', q: "Can Prim's handle negative edge weights?", opts: ['No, it fails', 'Yes, fine', 'Only on DAGs', 'Only with distinct weights'], answer: 1 },
+  { difficulty: 'easy', q: 'Which finds single-source shortest paths?', opts: ['Kruskal', 'Prim', 'Dijkstra', 'BFS only for trees'], answer: 2 },
+  { difficulty: 'easy', q: 'Can Dijkstra handle negative edge weights?', opts: ['Yes', 'No, can fail', 'Only with positive weights', 'Only on DAGs'], answer: 1 },
+  { difficulty: 'medium', q: 'Is the shortest-path tree the same as the MST?', opts: ['Yes always', 'Sometimes but generally no', 'Only complete graphs', 'Only trees'], answer: 1 },
+  { difficulty: 'medium', q: 'If (v₁,...,vᵢ) is a shortest path to vᵢ, then (v₁,...,vᵢ₋₁) is...', opts: ['a shortest path to vᵢ₋₁', 'not necessarily shortest', 'always the MST path', 'longer than SPT'], answer: 0 },
+  { difficulty: 'hard', q: 'When is there NO shortest path from u to v?', opts: ['All weights positive', 'Negative cycle reachable on path u→v', 'When u = v', 'Whenever weights are negative'], answer: 1 },
+  { difficulty: 'hard', q: 'Does source choice matter for the SPT shape?', opts: ['No, same tree', 'Yes, different source → different SPT', 'Only directed', 'Only on ties'], answer: 1 },
+  { difficulty: 'easy', q: 'What does FindSet(x) return?', opts: ["Size of x's set", "Representative element of x's set", "All elements of x's set", 'Whether x exists'], answer: 1 },
+  { difficulty: 'medium', q: 'Worst-case height of n-element tree with UnionByHeight?', opts: ['O(1)', 'O(log n)', 'O(√n)', 'O(n)'], answer: 1 },
+  { difficulty: 'medium', q: 'WeightedUnion (linked list) runs in?', opts: ['Θ(1)', 'Θ(min(|x|, |y|))', 'Θ(max(|x|, |y|))', 'Θ(n)'], answer: 1 },
+  { difficulty: 'hard', q: 'After UnionByHeight(x, y) with equal heights, what happens?', opts: ['Height unchanged', 'Height = max − 1', "First arg becomes root, height += 1", 'Trees rejected'], answer: 2 },
+  { difficulty: 'hard', q: "Does path compression always reduce the tree's height?", opts: ['Yes always', 'No — only the compressed path moves', 'Yes by at least 1', 'Yes to exactly 1'], answer: 1 },
+  { difficulty: 'hard', q: 'Amortized cost of UnionByRank + path compression?', opts: ['O(1) exact', 'O(log n)', 'O(α(n)) inverse Ackermann', 'O(log log n)'], answer: 2 },
+  { difficulty: 'easy', q: 'What does "NP" stand for?', opts: ['Non-polynomial', 'Non-deterministic polynomial', 'No polynomial', 'Near-polynomial'], answer: 1 },
+  { difficulty: 'easy', q: 'Is P ⊆ NP?', opts: ['Yes', 'No', 'Unknown', 'Only if P = NP'], answer: 0 },
+  { difficulty: 'easy', q: "Cook's theorem: which is NP-Complete?", opts: ['Sorting', 'Boolean SAT', 'MST', 'Shortest Path'], answer: 1 },
+  { difficulty: 'medium', q: 'To show a problem is in NP, you need...', opts: ['A polynomial algorithm', 'A certificate + polynomial verifier', 'A reduction from 3-SAT', 'Exponential verification'], answer: 1 },
+  { difficulty: 'medium', q: 'Certificate for Independent Set?', opts: ['Truth assignment', "Subset V′ of size K", 'Sequence of all vertices', 'Sorted edge list'], answer: 1 },
+  { difficulty: 'medium', q: 'Certificate for Hamiltonian Path?', opts: ['Subset of vertices', 'Edge list', 'Sequence of vertices', 'Truth assignment'], answer: 2 },
+  { difficulty: 'hard', q: 'Which is in P, NOT NP-Complete?', opts: ['Clique', 'Matching', 'Vertex Cover', 'Independent Set'], answer: 1 },
+  { difficulty: 'hard', q: 'Independent Set of size 5 (fixed) is...', opts: ['NP-Complete', 'In P (O(n⁵) brute force)', 'Undecidable', 'NP-Hard only'], answer: 1 },
+  { difficulty: 'hard', q: 'Definition of NP-Hard?', opts: ['Every NP problem reduces to it', 'It is in NP', 'Requires exponential time', 'NP-Complete and in P'], answer: 0 },
+  { difficulty: 'hard', q: 'Verifier for Vertex Cover checks...', opts: ['Each pair of vertices', "Each edge has an endpoint in V′", 'Compute matching', 'Degree of each vertex'], answer: 1 },
+  { difficulty: 'medium', q: 'Which is NOT NP-Complete?', opts: ['TSP-decision', 'Set Cover', 'Euler Circuit', '3-Coloring'], answer: 2 },
+  { difficulty: 'hard', q: '3-SAT verifier runs in?', opts: ['O(n!)', 'O(2ⁿ)', 'O(expression length)', 'Exponential'], answer: 2 },
+];
+
+let triviaState = null;
+function getLeaderboard() { try { return JSON.parse(localStorage.getItem('cse2331_leaderboard') || '[]'); } catch { return []; } }
+function saveLeaderboard(lb) { localStorage.setItem('cse2331_leaderboard', JSON.stringify(lb)); }
+function renderLeaderboard() {
+  const lb = getLeaderboard();
+  const el = document.getElementById('leaderboard');
+  if (lb.length === 0) { el.innerHTML = '<div style="padding: 14px; color: var(--muted); text-align: center;">No scores yet. Play a round!</div>'; return; }
+  el.innerHTML = lb.slice(0, 10).map((entry, i) => {
+    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '#' + (i+1);
+    return '<div class="lb-row"><span class="rank">' + medal + '</span><span class="name">' + entry.name + '</span><span style="color:var(--muted); font-size:11px;">' + entry.difficulty + '</span><span class="score">' + entry.score + '</span></div>';
+  }).join('');
+}
+
+function startTrivia(difficulty) {
+  const timePerQ = difficulty === 'easy' ? 30 : difficulty === 'medium' ? 20 : 12;
+  const multiplier = difficulty === 'easy' ? 1 : difficulty === 'medium' ? 2 : 4;
+  const pool = triviaQuestions.filter(q => {
+    if (difficulty === 'easy') return q.difficulty === 'easy';
+    if (difficulty === 'medium') return q.difficulty === 'easy' || q.difficulty === 'medium';
+    return true;
+  });
+  const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, 15);
+  triviaState = { difficulty, multiplier, timePerQ, questions: shuffled, qIdx: 0, score: 0, streak: 0, maxStreak: 0, correct: 0, wrong: 0, timer: null, timeLeft: timePerQ, answering: true };
+  document.getElementById('trivia-home').style.display = 'none';
+  document.getElementById('trivia-results').style.display = 'none';
+  document.getElementById('trivia-game').style.display = 'block';
+  renderTriviaQuestion();
+}
+
+function renderTriviaQuestion() {
+  const s = triviaState; if (!s) return;
+  const q = s.questions[s.qIdx];
+  document.getElementById('trivia-score').textContent = s.score;
+  document.getElementById('trivia-streak').textContent = s.streak;
+  document.getElementById('trivia-qnum').textContent = (s.qIdx + 1) + '/15';
+  document.getElementById('trivia-question').innerHTML = q.q;
+  const optsEl = document.getElementById('trivia-options');
+  optsEl.innerHTML = '';
+  q.opts.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'trivia-option';
+    btn.innerHTML = '<strong>' + String.fromCharCode(65+i) + '.</strong> ' + opt;
+    btn.onclick = () => triviaAnswer(i);
+    optsEl.appendChild(btn);
+  });
+  document.getElementById('trivia-feedback').textContent = '';
+  s.timeLeft = s.timePerQ;
+  s.answering = true;
+  updateTriviaTimer();
+  if (s.timer) clearInterval(s.timer);
+  s.timer = setInterval(() => {
+    if (!s.answering) return;
+    s.timeLeft--;
+    updateTriviaTimer();
+    if (s.timeLeft <= 0) triviaAnswer(-1);
+  }, 1000);
+}
+
+function updateTriviaTimer() {
+  const el = document.getElementById('trivia-timer');
+  el.textContent = Math.max(0, triviaState.timeLeft);
+  if (triviaState.timeLeft <= 5) el.classList.add('urgent');
+  else el.classList.remove('urgent');
+}
+
+function triviaAnswer(choice) {
+  const s = triviaState; if (!s || !s.answering) return;
+  s.answering = false;
+  clearInterval(s.timer);
+  const q = s.questions[s.qIdx];
+  const opts = document.querySelectorAll('.trivia-option');
+  opts.forEach((el, i) => {
+    el.disabled = true;
+    if (i === q.answer) el.classList.add('correct');
+    if (i === choice && i !== q.answer) el.classList.add('wrong');
+  });
+  let fb = '';
+  if (choice === q.answer) {
+    const timeBonus = Math.round((s.timeLeft / s.timePerQ) * 50);
+    const points = (50 + timeBonus) * s.multiplier;
+    s.score += points;
+    s.streak++;
+    s.maxStreak = Math.max(s.maxStreak, s.streak);
+    s.correct++;
+    fb = '✓ Correct! +' + points + ' points' + (s.streak > 1 ? ' (streak ×' + s.streak + '!)' : '');
+    playSound('correct');
+  } else if (choice === -1) { s.streak = 0; s.wrong++; fb = "⏰ Time's up!"; playSound('timeup'); }
+  else { s.streak = 0; s.wrong++; fb = '✗ Not quite. Correct answer highlighted.'; playSound('wrong'); }
+  document.getElementById('trivia-feedback').textContent = fb;
+  document.getElementById('trivia-score').textContent = s.score;
+  document.getElementById('trivia-streak').textContent = s.streak;
+  setTimeout(() => { s.qIdx++; if (s.qIdx >= s.questions.length) endTrivia(); else renderTriviaQuestion(); }, 1500);
+}
+
+function endTrivia() {
+  const s = triviaState; if (!s) return;
+  if (s.timer) clearInterval(s.timer);
+  document.getElementById('trivia-game').style.display = 'none';
+  document.getElementById('trivia-results').style.display = 'block';
+  const pct = Math.round((s.correct / s.questions.length) * 100);
+  let title;
+  if (pct === 100) { title = '🏆 Perfect!'; launchConfetti(150); playSound('victory'); unlockAchievement('trivia_perfect'); }
+  else if (pct >= 80) { title = '⭐ Excellent!'; launchConfetti(60); playSound('victory'); }
+  else if (pct >= 60) title = '👍 Solid!';
+  else if (pct >= 40) title = 'Keep studying!';
+  else title = 'Time to review...';
+  document.getElementById('trivia-result-title').textContent = title;
+  document.getElementById('trivia-result-summary').innerHTML = s.correct + '/' + s.questions.length + ' correct • ' + pct + '% • Max streak: ' + s.maxStreak + ' • ' + s.difficulty;
+  document.getElementById('trivia-result-score').textContent = s.score + ' pts';
+  document.getElementById('trivia-name').value = '';
+  unlockAchievement('trivia_first');
+  if (s.difficulty === 'hard' && s.score >= 2000) unlockAchievement('trivia_hard');
+}
+
+function quitTrivia() {
+  if (triviaState && triviaState.timer) clearInterval(triviaState.timer);
+  triviaState = null;
+  document.getElementById('trivia-game').style.display = 'none';
+  document.getElementById('trivia-results').style.display = 'none';
+  document.getElementById('trivia-home').style.display = 'block';
+  renderLeaderboard();
+}
+
+document.querySelectorAll('[data-difficulty]').forEach(btn => { btn.onclick = () => startTrivia(btn.dataset.difficulty); });
+document.getElementById('trivia-quit').onclick = quitTrivia;
+document.getElementById('trivia-back-home').onclick = quitTrivia;
+document.getElementById('trivia-play-again').onclick = () => { if (triviaState) startTrivia(triviaState.difficulty); };
+document.getElementById('trivia-save').onclick = () => {
+  const s = triviaState; if (!s) return;
+  const name = document.getElementById('trivia-name').value.trim() || 'Anonymous';
+  const lb = getLeaderboard();
+  lb.push({ name, score: s.score, difficulty: s.difficulty, date: Date.now() });
+  lb.sort((a, b) => b.score - a.score);
+  saveLeaderboard(lb.slice(0, 100));
+  quitTrivia();
+};
+document.getElementById('clear-leaderboard').onclick = () => {
+  if (confirm('Clear the leaderboard?')) { localStorage.removeItem('cse2331_leaderboard'); renderLeaderboard(); }
+};
+
+// ============================================================ RACE MODE (Prim vs Kruskal side by side)
+const raceCanvasLeft = document.getElementById('race-canvas-left');
+const raceCanvasRight = document.getElementById('race-canvas-right');
+const raceCtxLeft = raceCanvasLeft.getContext('2d');
+const raceCtxRight = raceCanvasRight.getContext('2d');
+let raceGraph = null; // { vertices: [{name, x, y}], edges: [{u, v, w}] }
+let racePrimState = null;
+let raceKruskalState = null;
+let raceInterval = null;
+let raceFinishOrder = [];
+
+function resizeRaceCanvases() {
+  [raceCanvasLeft, raceCanvasRight].forEach((cv, i) => {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = cv.getBoundingClientRect();
+    if (rect.width === 0) return;
+    cv.width = rect.width * dpr;
+    cv.height = rect.height * dpr;
+    const c = i === 0 ? raceCtxLeft : raceCtxRight;
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  });
+  drawRaceCanvases();
+}
+
+function buildRaceGraph(presetName) {
+  const PRESETS = {
+    small: { v: [['A',.15,.3],['B',.55,.2],['C',.35,.5],['D',.75,.55],['E',.25,.8],['F',.7,.85]],
+             e: [[0,1,4],[0,2,1],[1,2,2],[1,3,5],[2,3,8],[2,4,7],[2,5,10],[3,5,3],[4,5,2]] },
+    medium: { v: [['A',.15,.2],['B',.5,.15],['C',.85,.2],['D',.5,.45],['E',.15,.75],['F',.5,.78],['G',.85,.75]],
+              e: [[0,1,7],[0,3,5],[1,2,8],[1,3,9],[2,3,6],[3,4,3],[3,5,4],[3,6,2],[4,5,6],[5,6,1]] },
+    practice: { v: [['v1',.15,.5],['v2',.3,.2],['v3',.5,.2],['v4',.7,.2],['v5',.5,.5],['v6',.3,.8],['v7',.5,.8],['v8',.7,.5]],
+                e: [[0,1,7],[0,5,8],[1,2,6],[1,4,11],[1,5,2],[2,3,5],[2,4,3],[4,6,1],[4,7,5],[3,7,4],[5,6,7],[6,7,7]] },
+  };
+  if (presetName === 'random') {
+    const n = 6 + Math.floor(Math.random() * 3);
+    const v = [];
+    for (let i = 0; i < n; i++) {
+      v.push([String.fromCharCode(65 + i), 0.15 + Math.random() * 0.7, 0.15 + Math.random() * 0.7]);
+    }
+    const e = [];
+    const used = new Set();
+    // Random spanning tree first so it's connected
+    const shuffled = [...Array(n).keys()].sort(() => Math.random() - 0.5);
+    for (let i = 1; i < shuffled.length; i++) {
+      const j = Math.floor(Math.random() * i);
+      const a = shuffled[i], b = shuffled[j];
+      const key = a < b ? a+','+b : b+','+a;
+      if (!used.has(key)) { used.add(key); e.push([a, b, 1 + Math.floor(Math.random() * 12)]); }
+    }
+    // A few extra edges
+    for (let k = 0; k < n; k++) {
+      const a = Math.floor(Math.random() * n), b = Math.floor(Math.random() * n);
+      if (a === b) continue;
+      const key = a < b ? a+','+b : b+','+a;
+      if (!used.has(key)) { used.add(key); e.push([a, b, 1 + Math.floor(Math.random() * 12)]); }
+    }
+    return { v, e };
+  }
+  return PRESETS[presetName] || PRESETS.medium;
+}
+
+function loadRaceGraph() {
+  const presetName = document.getElementById('race-preset').value;
+  const p = buildRaceGraph(presetName);
+  raceGraph = {
+    vertices: p.v.map(([name, rx, ry], i) => ({ id: i, name, rx, ry })),
+    edges: p.e.map(([u, v, w]) => ({ u, v, w })),
+  };
+  // populate prim start dropdown
+  const sel = document.getElementById('race-prim-start');
+  sel.innerHTML = '';
+  raceGraph.vertices.forEach(v => { const o = document.createElement('option'); o.value = v.id; o.textContent = v.name; sel.appendChild(o); });
+  resetRace();
+}
+
+function resetRace() {
+  if (raceInterval) { clearInterval(raceInterval); raceInterval = null; }
+  racePrimState = null;
+  raceKruskalState = null;
+  raceFinishOrder = [];
+  document.getElementById('race-prim-stat').textContent = 'Ready';
+  document.getElementById('race-kruskal-stat').textContent = 'Ready';
+  document.getElementById('race-winner-box').innerHTML = '';
+  document.getElementById('race-log').innerHTML = '';
+  drawRaceCanvases();
+}
+
+function raceInit() {
+  if (!raceGraph) loadRaceGraph();
+  const startId = parseInt(document.getElementById('race-prim-start').value);
+  racePrimState = {
+    discovered: new Set([startId]),
+    costs: new Map(raceGraph.vertices.map(v => [v.id, v.id === startId ? 0 : Infinity])),
+    mstEdges: [],
+    done: false,
+    start: startId,
+  };
+  const sortedEdges = [...raceGraph.edges].sort((a, b) => a.w - b.w).map((e, i) => ({ ...e, idx: i }));
+  const parent = new Map(raceGraph.vertices.map(v => [v.id, v.id]));
+  raceKruskalState = {
+    sortedEdges,
+    queueIndex: 0,
+    parent,
+    mstEdges: [],
+    skippedEdge: null,
+    consideredEdge: null,
+    done: false,
+  };
+  raceFinishOrder = [];
+}
+
+function racePrimStep() {
+  const s = racePrimState; if (!s || s.done) return;
+  let best = null;
+  for (const e of raceGraph.edges) {
+    const inU = s.discovered.has(e.u), inV = s.discovered.has(e.v);
+    if (inU !== inV) {
+      const from = inU ? e.u : e.v, to = inU ? e.v : e.u;
+      if (!best || e.w < best.edge.w) best = { edge: e, from, to };
+    }
+  }
+  if (!best) {
+    s.done = true;
+    if (!raceFinishOrder.includes('prim')) raceFinishOrder.push('prim');
+    logRace('<span style="color:var(--accent);"><strong>Prim finished!</strong></span> Total weight: ' + s.mstEdges.reduce((a,e)=>a+e.w,0));
+    return;
+  }
+  s.mstEdges.push(best.edge);
+  s.discovered.add(best.to);
+  s.costs.set(best.to, 0);
+  logRace('<span style="color:var(--accent);">Prim</span>: added ' + raceGraph.vertices[best.from].name + '—' + raceGraph.vertices[best.to].name + ' (' + best.edge.w + ')');
+}
+
+function raceKruskalStep() {
+  const s = raceKruskalState; if (!s || s.done) return;
+  while (s.queueIndex < s.sortedEdges.length) {
+    const e = s.sortedEdges[s.queueIndex++];
+    const ru = ufFindRace(s.parent, e.u), rv = ufFindRace(s.parent, e.v);
+    if (ru !== rv) {
+      s.mstEdges.push(e); s.parent.set(ru, rv);
+      s.skippedEdge = null;
+      logRace('<span style="color:var(--purple);">Kruskal</span>: added ' + raceGraph.vertices[e.u].name + '—' + raceGraph.vertices[e.v].name + ' (' + e.w + ')');
+      if (s.mstEdges.length >= raceGraph.vertices.length - 1) {
+        s.done = true;
+        if (!raceFinishOrder.includes('kruskal')) raceFinishOrder.push('kruskal');
+        logRace('<span style="color:var(--purple);"><strong>Kruskal finished!</strong></span> Total weight: ' + s.mstEdges.reduce((a,e)=>a+e.w,0));
+      }
+      return;
+    } else {
+      s.skippedEdge = e;
+      logRace('<span style="color:var(--purple);">Kruskal</span>: <span class="skip">skipped</span> ' + raceGraph.vertices[e.u].name + '—' + raceGraph.vertices[e.v].name + ' (cycle)');
+      return;
+    }
+  }
+  s.done = true;
+}
+
+function ufFindRace(parent, x) { while (parent.get(x) !== x) x = parent.get(x); return x; }
+
+function logRace(html) {
+  const log = document.getElementById('race-log');
+  const div = document.createElement('div');
+  div.className = 'step'; div.innerHTML = html;
+  log.appendChild(div); log.scrollTop = log.scrollHeight;
+}
+
+function startRace() {
+  if (!raceGraph) loadRaceGraph();
+  raceInit();
+  document.getElementById('race-winner-box').innerHTML = '';
+  document.getElementById('race-log').innerHTML = '';
+  unlockAchievement('race_winner');
+  const speed = parseInt(document.getElementById('race-speed').value);
+  if (raceInterval) clearInterval(raceInterval);
+  raceInterval = setInterval(() => {
+    if (!racePrimState.done) racePrimStep();
+    if (!raceKruskalState.done) raceKruskalStep();
+    // Update stats
+    document.getElementById('race-prim-stat').textContent =
+      'Edges: ' + racePrimState.mstEdges.length + '/' + (raceGraph.vertices.length - 1) +
+      ' • Weight: ' + racePrimState.mstEdges.reduce((a,e)=>a+e.w,0) +
+      (racePrimState.done ? ' ✓' : '');
+    document.getElementById('race-kruskal-stat').textContent =
+      'Edges: ' + raceKruskalState.mstEdges.length + '/' + (raceGraph.vertices.length - 1) +
+      ' • Considered: ' + raceKruskalState.queueIndex + '/' + raceKruskalState.sortedEdges.length +
+      (raceKruskalState.done ? ' ✓' : '');
+    drawRaceCanvases();
+    playSound('step');
+    if (racePrimState.done && raceKruskalState.done) {
+      clearInterval(raceInterval); raceInterval = null;
+      announceWinner();
+    }
+  }, speed);
+}
+
+function announceWinner() {
+  const primW = racePrimState.mstEdges.reduce((a,e)=>a+e.w,0);
+  const krusW = raceKruskalState.mstEdges.reduce((a,e)=>a+e.w,0);
+  const first = raceFinishOrder[0];
+  let html = '';
+  if (primW === krusW) {
+    html = '<div class="race-winner tie">🤝 Same MST weight (' + primW + '). ';
+    if (first === 'prim') html += 'Prim finished first in step count.';
+    else html += 'Kruskal finished first in step count.';
+    html += ' Both algorithms produce an MST of the same total weight.</div>';
+  } else {
+    html = '<div class="race-winner">Unexpected: different totals. Prim=' + primW + ', Kruskal=' + krusW + '</div>';
+  }
+  document.getElementById('race-winner-box').innerHTML = html;
+  playSound('victory');
+}
+
+function drawRaceCanvases() {
+  drawRaceSingle(raceCtxLeft, raceCanvasLeft, racePrimState, 'prim');
+  drawRaceSingle(raceCtxRight, raceCanvasRight, raceKruskalState, 'kruskal');
+}
+
+function drawRaceSingle(c, cv, state, which) {
+  const rect = cv.getBoundingClientRect();
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  c.clearRect(0, 0, rect.width, rect.height);
+  c.fillStyle = isDark ? '#1e1e23' : '#ffffff';
+  c.fillRect(0, 0, rect.width, rect.height);
+  if (!raceGraph) return;
+  const verts = raceGraph.vertices.map(v => ({ ...v, x: v.rx * rect.width, y: v.ry * rect.height }));
+  const color = which === 'prim' ? '#185fa5' : '#534ab7';
+
+  // edges
+  for (const e of raceGraph.edges) {
+    const u = verts[e.u], v = verts[e.v];
+    let stroke = isDark ? '#4a4a55' : '#c0c0b8', lw = 1.2;
+    const inMST = state && state.mstEdges && state.mstEdges.some(me => me.u === e.u && me.v === e.v);
+    if (inMST) { stroke = color; lw = 4; }
+    if (state && state.skippedEdge && state.skippedEdge.u === e.u && state.skippedEdge.v === e.v) { stroke = '#a32d2d'; lw = 2; }
+    c.strokeStyle = stroke; c.lineWidth = lw;
+    c.beginPath(); c.moveTo(u.x, u.y); c.lineTo(v.x, v.y); c.stroke();
+    const mx = (u.x + v.x) / 2, my = (u.y + v.y) / 2;
+    c.fillStyle = isDark ? '#1e1e23' : '#fff';
+    c.strokeStyle = isDark ? '#4a4a55' : '#d3d1c7'; c.lineWidth = 0.5;
+    c.beginPath(); c.arc(mx, my, 11, 0, Math.PI * 2); c.fill(); c.stroke();
+    c.fillStyle = isDark ? '#e8e6e0' : '#1f1f1c'; c.font = '11px system-ui';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(e.w, mx, my);
+  }
+  // vertices
+  for (const v of verts) {
+    const discovered = which === 'prim' && state && state.discovered.has(v.id);
+    const inComponent = which === 'kruskal' && state && state.mstEdges.some(e => e.u === v.id || e.v === v.id);
+    const highlight = discovered || inComponent;
+    c.fillStyle = highlight ? (isDark ? '#1e3a1e' : '#eaf3de') : (isDark ? '#1a2d40' : '#e6f1fb');
+    c.strokeStyle = highlight ? '#3b6d11' : color;
+    c.lineWidth = 2;
+    c.beginPath(); c.arc(v.x, v.y, 18, 0, Math.PI * 2); c.fill(); c.stroke();
+    c.fillStyle = highlight ? '#27500a' : color;
+    c.font = 'bold 12px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(v.name, v.x, v.y);
+  }
+}
+
+document.getElementById('race-start').onclick = () => { loadRaceGraph(); startRace(); };
+document.getElementById('race-reset').onclick = resetRace;
+document.getElementById('race-preset').onchange = loadRaceGraph;
+
+// ============================================================ PUZZLE MODE (Be the Algorithm)
+const puzzleCanvas = document.getElementById('puzzle-canvas');
+const puzzleCtx = puzzleCanvas.getContext('2d');
+let puzzle = null;
+
+function resizePuzzleCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = puzzleCanvas.getBoundingClientRect();
+  if (rect.width === 0) return;
+  puzzleCanvas.width = rect.width * dpr;
+  puzzleCanvas.height = rect.height * dpr;
+  puzzleCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  drawPuzzleCanvas();
+}
+
+function generatePuzzleGraph(size) {
+  const n = size === 'easy' ? 5 : size === 'hard' ? 9 : 7;
+  const vertices = [];
+  for (let i = 0; i < n; i++) {
+    vertices.push({
+      id: i,
+      name: String.fromCharCode(65 + i),
+      rx: 0.15 + Math.random() * 0.7,
+      ry: 0.15 + Math.random() * 0.7,
+    });
+  }
+  // Random spanning tree for connectivity
+  const edges = [];
+  const usedWeights = new Set();
+  function uniqueWeight() {
+    let w;
+    do { w = 1 + Math.floor(Math.random() * 20); } while (usedWeights.has(w));
+    usedWeights.add(w);
+    return w;
+  }
+  const shuffled = [...Array(n).keys()].sort(() => Math.random() - 0.5);
+  const used = new Set();
+  for (let i = 1; i < shuffled.length; i++) {
+    const j = Math.floor(Math.random() * i);
+    const a = shuffled[i], b = shuffled[j];
+    const key = a < b ? a+','+b : b+','+a;
+    if (!used.has(key)) { used.add(key); edges.push({ u: a, v: b, w: uniqueWeight() }); }
+  }
+  for (let k = 0; k < n; k++) {
+    const a = Math.floor(Math.random() * n), b = Math.floor(Math.random() * n);
+    if (a === b) continue;
+    const key = a < b ? a+','+b : b+','+a;
+    if (!used.has(key)) { used.add(key); edges.push({ u: a, v: b, w: uniqueWeight() }); }
+  }
+  return { vertices, edges };
+}
+
+function correctPrimOrder(graph, startId) {
+  const discovered = new Set([startId]);
+  const order = [startId];
+  while (discovered.size < graph.vertices.length) {
+    let best = null;
+    for (const e of graph.edges) {
+      const inU = discovered.has(e.u), inV = discovered.has(e.v);
+      if (inU !== inV) {
+        const to = inU ? e.v : e.u;
+        if (!best || e.w < best.w || (e.w === best.w && to < best.to)) best = { edge: e, to, w: e.w };
+      }
+    }
+    if (!best) break;
+    discovered.add(best.to);
+    order.push(best.to);
+  }
+  return order;
+}
+
+function correctDijkstraOrder(graph, startId) {
+  const dist = new Map(graph.vertices.map(v => [v.id, v.id === startId ? 0 : Infinity]));
+  const discovered = new Set();
+  const order = [];
+  while (discovered.size < graph.vertices.length) {
+    let best = null;
+    for (const v of graph.vertices) {
+      if (discovered.has(v.id)) continue;
+      const d = dist.get(v.id);
+      if (d === Infinity) continue;
+      if (best === null || d < dist.get(best) || (d === dist.get(best) && v.id < best)) best = v.id;
+    }
+    if (best === null) break;
+    discovered.add(best); order.push(best);
+    for (const e of graph.edges) {
+      let other = null;
+      if (e.u === best) other = e.v; else if (e.v === best) other = e.u;
+      if (other === null || discovered.has(other)) continue;
+      const nd = dist.get(best) + e.w;
+      if (nd < dist.get(other)) dist.set(other, nd);
+    }
+  }
+  return order;
+}
+
+function correctKruskalEdgeOrder(graph) {
+  const sorted = [...graph.edges].sort((a, b) => a.w - b.w || (a.u - b.u) || (a.v - b.v));
+  const parent = new Map(graph.vertices.map(v => [v.id, v.id]));
+  function find(x) { while (parent.get(x) !== x) x = parent.get(x); return x; }
+  const mstEdges = [];
+  for (const e of sorted) {
+    const ru = find(e.u), rv = find(e.v);
+    if (ru !== rv) { parent.set(ru, rv); mstEdges.push(e); }
+    if (mstEdges.length === graph.vertices.length - 1) break;
+  }
+  return mstEdges;
+}
+
+function newPuzzle() {
+  const size = document.getElementById('puzzle-difficulty').value;
+  const algo = document.getElementById('puzzle-algo').value;
+  const graph = generatePuzzleGraph(size);
+  const startId = 0; // always start at A for consistency
+  let correct, task;
+  if (algo === 'prim') {
+    correct = correctPrimOrder(graph, startId);
+    task = 'Starting at <strong>' + graph.vertices[startId].name + '</strong>, click vertices in the order Prim\'s algorithm would <strong>discover (add)</strong> them.';
+  } else if (algo === 'dijkstra') {
+    correct = correctDijkstraOrder(graph, startId);
+    task = 'Starting at <strong>' + graph.vertices[startId].name + '</strong>, click vertices in the order Dijkstra would <strong>finalize (mark discovered)</strong> them.';
+  } else {
+    correct = correctKruskalEdgeOrder(graph);
+    task = 'Click edges in the order Kruskal\'s algorithm would <strong>add them to the MST</strong> (ignoring edges that would form cycles).';
+  }
+  puzzle = {
+    graph, algo, startId,
+    correct, // array of vertex IDs (prim/dijkstra) OR array of edges (kruskal)
+    userSequence: [],
+    finished: false,
+    mistakes: 0,
+  };
+  document.getElementById('puzzle-task').innerHTML = task;
+  document.getElementById('puzzle-feedback').className = 'puzzle-feedback neutral';
+  document.getElementById('puzzle-feedback').textContent = algo === 'kruskal'
+    ? 'Click edges in order, cheapest first. Use the weight labels on edges.'
+    : 'Click the correct next vertex. Green = right, red = wrong.';
+  document.getElementById('puzzle-sequence').textContent = '—';
+  updatePuzzleScore();
+  drawPuzzleCanvas();
+}
+
+function updatePuzzleScore() {
+  if (!puzzle) { document.getElementById('puzzle-score').textContent = '0 / 0'; return; }
+  document.getElementById('puzzle-score').textContent = puzzle.userSequence.length + ' / ' + puzzle.correct.length;
+  const stats = getStats();
+  document.getElementById('puzzle-stat-solved').textContent = stats.puzzles_solved || 0;
+  document.getElementById('puzzle-stat-perfect').textContent = stats.puzzles_perfect || 0;
+}
+
+function findPuzzleVertex(x, y) {
+  if (!puzzle) return null;
+  const rect = puzzleCanvas.getBoundingClientRect();
+  for (const v of puzzle.graph.vertices) {
+    const vx = v.rx * rect.width, vy = v.ry * rect.height;
+    if ((vx - x) ** 2 + (vy - y) ** 2 <= 22 * 22) return v;
+  }
+  return null;
+}
+
+function findPuzzleEdge(x, y) {
+  if (!puzzle) return null;
+  const rect = puzzleCanvas.getBoundingClientRect();
+  for (const e of puzzle.graph.edges) {
+    const u = puzzle.graph.vertices[e.u], v = puzzle.graph.vertices[e.v];
+    const ux = u.rx * rect.width, uy = u.ry * rect.height;
+    const vx = v.rx * rect.width, vy = v.ry * rect.height;
+    const mx = (ux + vx) / 2, my = (uy + vy) / 2;
+    if ((mx - x) ** 2 + (my - y) ** 2 <= 16 * 16) return e;
+  }
+  return null;
+}
+
+puzzleCanvas.addEventListener('click', (e) => {
+  if (!puzzle || puzzle.finished) return;
+  const rect = puzzleCanvas.getBoundingClientRect();
+  const x = e.clientX - rect.left, y = e.clientY - rect.top;
+  if (puzzle.algo === 'kruskal') {
+    const ed = findPuzzleEdge(x, y);
+    if (!ed) return;
+    // Already picked?
+    if (puzzle.userSequence.some(se => se.u === ed.u && se.v === ed.v)) return;
+    const step = puzzle.userSequence.length;
+    const correctEdge = puzzle.correct[step];
+    if (correctEdge.u === ed.u && correctEdge.v === ed.v) {
+      puzzle.userSequence.push(ed);
+      playSound('correct');
+      showPuzzleFeedback(true, 'Correct! That\'s edge ' + puzzle.graph.vertices[ed.u].name + '—' + puzzle.graph.vertices[ed.v].name + ' (weight ' + ed.w + ').');
+    } else {
+      puzzle.mistakes++;
+      playSound('wrong');
+      showPuzzleFeedback(false, 'Nope. The correct next edge is ' + puzzle.graph.vertices[correctEdge.u].name + '—' + puzzle.graph.vertices[correctEdge.v].name + ' (weight ' + correctEdge.w + ').');
+      // Still advance (record the correct one so they can keep going)
+      puzzle.userSequence.push(correctEdge);
+    }
+  } else {
+    const v = findPuzzleVertex(x, y);
+    if (!v) return;
+    if (puzzle.userSequence.includes(v.id)) return;
+    const step = puzzle.userSequence.length;
+    const correctId = puzzle.correct[step];
+    if (v.id === correctId) {
+      puzzle.userSequence.push(v.id);
+      playSound('correct');
+      showPuzzleFeedback(true, 'Correct! ' + v.name + ' is next.');
+    } else {
+      puzzle.mistakes++;
+      playSound('wrong');
+      showPuzzleFeedback(false, 'Nope. The correct next vertex is ' + puzzle.graph.vertices[correctId].name + '.');
+      puzzle.userSequence.push(correctId);
+    }
+  }
+  // Sequence display
+  let seq;
+  if (puzzle.algo === 'kruskal') seq = puzzle.userSequence.map(ed => puzzle.graph.vertices[ed.u].name + '—' + puzzle.graph.vertices[ed.v].name).join('  →  ');
+  else seq = puzzle.userSequence.map(id => puzzle.graph.vertices[id].name).join(' → ');
+  document.getElementById('puzzle-sequence').textContent = seq;
+  updatePuzzleScore();
+  if (puzzle.userSequence.length === puzzle.correct.length) {
+    puzzle.finished = true;
+    bumpStat('puzzles_solved');
+    unlockAchievement('puzzle_solve');
+    if (puzzle.mistakes === 0) {
+      bumpStat('puzzles_perfect');
+      const s = getStats();
+      if ((s.puzzles_perfect || 0) >= 3) unlockAchievement('puzzle_perfect');
+      showPuzzleFeedback(true, '🎉 Flawless!');
+      launchConfetti(80);
+      playSound('victory');
+    } else {
+      showPuzzleFeedback(null, 'Done. You made ' + puzzle.mistakes + ' mistake' + (puzzle.mistakes > 1 ? 's' : '') + '.');
+    }
+  }
+  drawPuzzleCanvas();
+});
+
+function showPuzzleFeedback(correctness, msg) {
+  const el = document.getElementById('puzzle-feedback');
+  if (correctness === true) el.className = 'puzzle-feedback correct';
+  else if (correctness === false) el.className = 'puzzle-feedback wrong';
+  else el.className = 'puzzle-feedback neutral';
+  el.textContent = msg;
+}
+
+function drawPuzzleCanvas() {
+  const rect = puzzleCanvas.getBoundingClientRect();
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  puzzleCtx.clearRect(0, 0, rect.width, rect.height);
+  puzzleCtx.fillStyle = isDark ? '#1e1e23' : '#ffffff';
+  puzzleCtx.fillRect(0, 0, rect.width, rect.height);
+  if (!puzzle) return;
+  const verts = puzzle.graph.vertices.map(v => ({ ...v, x: v.rx * rect.width, y: v.ry * rect.height }));
+  // Edges
+  for (const e of puzzle.graph.edges) {
+    const u = verts[e.u], v = verts[e.v];
+    let stroke = isDark ? '#555' : '#c0c0b8', lw = 1.5;
+    if (puzzle.algo === 'kruskal' && puzzle.userSequence.some(se => se.u === e.u && se.v === e.v)) {
+      stroke = '#3b6d11'; lw = 4;
+    }
+    puzzleCtx.strokeStyle = stroke; puzzleCtx.lineWidth = lw;
+    puzzleCtx.beginPath(); puzzleCtx.moveTo(u.x, u.y); puzzleCtx.lineTo(v.x, v.y); puzzleCtx.stroke();
+    const mx = (u.x + v.x) / 2, my = (u.y + v.y) / 2;
+    puzzleCtx.fillStyle = isDark ? '#1e1e23' : '#fff';
+    puzzleCtx.strokeStyle = isDark ? '#555' : '#d3d1c7'; puzzleCtx.lineWidth = 0.5;
+    puzzleCtx.beginPath(); puzzleCtx.arc(mx, my, 13, 0, Math.PI * 2); puzzleCtx.fill(); puzzleCtx.stroke();
+    puzzleCtx.fillStyle = isDark ? '#e8e6e0' : '#1f1f1c'; puzzleCtx.font = '12px system-ui';
+    puzzleCtx.textAlign = 'center'; puzzleCtx.textBaseline = 'middle';
+    puzzleCtx.fillText(e.w, mx, my);
+  }
+  // Vertices
+  for (const v of verts) {
+    let fill, stroke, textColor;
+    const isStart = puzzle.startId === v.id;
+    const discovered = puzzle.algo !== 'kruskal' && puzzle.userSequence.includes(v.id);
+    if (discovered) {
+      const step = puzzle.userSequence.indexOf(v.id);
+      fill = isDark ? '#1e3a1e' : '#eaf3de'; stroke = '#3b6d11'; textColor = '#3b6d11';
+    } else if (isStart) {
+      fill = isDark ? '#2e2312' : '#faeeda'; stroke = '#ba7517'; textColor = '#854f0b';
+    } else {
+      fill = isDark ? '#1a2d40' : '#e6f1fb'; stroke = '#185fa5'; textColor = '#0c447c';
+    }
+    puzzleCtx.fillStyle = fill; puzzleCtx.strokeStyle = stroke; puzzleCtx.lineWidth = 2;
+    puzzleCtx.beginPath(); puzzleCtx.arc(v.x, v.y, 22, 0, Math.PI * 2); puzzleCtx.fill(); puzzleCtx.stroke();
+    puzzleCtx.fillStyle = textColor; puzzleCtx.font = 'bold 14px system-ui';
+    puzzleCtx.textAlign = 'center'; puzzleCtx.textBaseline = 'middle';
+    puzzleCtx.fillText(v.name, v.x, v.y);
+    // Numbered discovery order
+    if (discovered) {
+      const step = puzzle.userSequence.indexOf(v.id) + 1;
+      puzzleCtx.fillStyle = '#3b6d11';
+      puzzleCtx.font = 'bold 11px "SF Mono", Consolas, monospace';
+      puzzleCtx.fillText('#' + step, v.x, v.y - 32);
+    }
+  }
+}
+
+document.getElementById('puzzle-new').onclick = newPuzzle;
+document.getElementById('puzzle-hint').onclick = () => {
+  if (!puzzle || puzzle.finished) return;
+  const step = puzzle.userSequence.length;
+  if (step >= puzzle.correct.length) return;
+  if (puzzle.algo === 'kruskal') {
+    const ed = puzzle.correct[step];
+    showPuzzleFeedback(null, 'Hint: the next edge is ' + puzzle.graph.vertices[ed.u].name + '—' + puzzle.graph.vertices[ed.v].name + ' (weight ' + ed.w + ').');
+  } else {
+    showPuzzleFeedback(null, 'Hint: the next vertex is ' + puzzle.graph.vertices[puzzle.correct[step]].name + '.');
+  }
+};
+document.getElementById('puzzle-reveal').onclick = () => {
+  if (!puzzle) return;
+  let seq;
+  if (puzzle.algo === 'kruskal') seq = puzzle.correct.map(ed => puzzle.graph.vertices[ed.u].name + '—' + puzzle.graph.vertices[ed.v].name).join('  →  ');
+  else seq = puzzle.correct.map(id => puzzle.graph.vertices[id].name).join(' → ');
+  showPuzzleFeedback(null, 'Full answer: ' + seq);
+};
+
+// ============================================================ Graph Lab
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+function resizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  if (rect.width === 0) return;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  drawGraph();
+}
+let vertices = [], edges = [], nextId = 0, selectedVertex = null, draggingVertex = null, dragStartTime = 0, algoState = null;
+function vName(id) { const v = vertices.find(x => x.id === id); return v ? v.name : '?'; }
+function findVertexAt(x, y) {
+  for (let i = vertices.length - 1; i >= 0; i--) { const v = vertices[i]; if ((v.x - x) ** 2 + (v.y - y) ** 2 <= 22 * 22) return v; }
+  return null;
+}
+function findEdgeAt(x, y) {
+  for (const e of edges) {
+    const u = vertices.find(x => x.id === e.u), v = vertices.find(x => x.id === e.v);
+    if (!u || !v) continue;
+    const mx = (u.x + v.x) / 2, my = (u.y + v.y) / 2;
+    if ((mx - x) ** 2 + (my - y) ** 2 <= 18 * 18) return e;
+  }
+  return null;
+}
+function addVertex(x, y, name) {
+  const nm = name || String.fromCharCode(65 + vertices.length);
+  vertices.push({ id: nextId++, name: nm, x, y });
+  refreshStartDropdown(); drawGraph();
+}
+function addEdge(uId, vId, w) {
+  if (uId === vId) return;
+  if (edges.some(e => (e.u === uId && e.v === vId) || (e.u === vId && e.v === uId))) return;
+  edges.push({ u: uId, v: vId, w }); drawGraph();
+}
+function refreshStartDropdown() {
+  const sel = document.getElementById('start-vertex');
+  sel.innerHTML = '';
+  for (const v of vertices) { const opt = document.createElement('option'); opt.value = v.id; opt.textContent = v.name; sel.appendChild(opt); }
+}
+function drawGraph() {
+  const rect = canvas.getBoundingClientRect();
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  ctx.clearRect(0, 0, rect.width, rect.height);
+  ctx.fillStyle = isDark ? '#1e1e23' : '#ffffff';
+  ctx.fillRect(0, 0, rect.width, rect.height);
+  for (const e of edges) {
+    const u = vertices.find(x => x.id === e.u), v = vertices.find(x => x.id === e.v);
+    if (!u || !v) continue;
+    let color = isDark ? '#555' : '#888780', width = 1.5;
+    if (algoState) {
+      if (algoState.mstEdges && algoState.mstEdges.some(me => (me.u === e.u && me.v === e.v) || (me.u === e.v && me.v === e.u))) { color = '#3b6d11'; width = 3.5; }
+      else if (algoState.skippedEdge && ((algoState.skippedEdge.u === e.u && algoState.skippedEdge.v === e.v) || (algoState.skippedEdge.u === e.v && algoState.skippedEdge.v === e.u))) { color = '#a32d2d'; width = 2.5; }
+    }
+    ctx.strokeStyle = color; ctx.lineWidth = width;
+    ctx.beginPath(); ctx.moveTo(u.x, u.y); ctx.lineTo(v.x, v.y); ctx.stroke();
+    const mx = (u.x + v.x) / 2, my = (u.y + v.y) / 2;
+    ctx.fillStyle = isDark ? '#1e1e23' : '#fff'; ctx.strokeStyle = isDark ? '#555' : '#d3d1c7'; ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.arc(mx, my, 13, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = isDark ? '#e8e6e0' : '#1f1f1c'; ctx.font = '12px system-ui';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(e.w, mx, my);
+  }
+  for (const v of vertices) {
+    let fill = isDark ? '#1a2d40' : '#e6f1fb', stroke = '#185fa5', textColor = isDark ? '#8db8dc' : '#0c447c';
+    if (algoState && algoState.discovered && algoState.discovered.has(v.id)) { fill = isDark ? '#1e3a1e' : '#eaf3de'; stroke = '#3b6d11'; textColor = isDark ? '#9dd670' : '#27500a'; }
+    if (selectedVertex === v) { stroke = '#d85a30'; fill = isDark ? '#3a1f12' : '#fceae7'; }
+    ctx.fillStyle = fill; ctx.strokeStyle = stroke; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(v.x, v.y, 22, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = textColor; ctx.font = 'bold 14px system-ui';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(v.name, v.x, v.y);
+    if (algoState && algoState.type === 'dijkstra' && algoState.distances) {
+      const d = algoState.distances.get(v.id);
+      if (d !== undefined) { ctx.fillStyle = '#534ab7'; ctx.font = 'bold 11px "SF Mono", Consolas, monospace'; ctx.fillText(d === Infinity ? '∞' : String(d), v.x, v.y - 32); }
+    }
+    if (algoState && algoState.type === 'prim' && algoState.costs) {
+      const c = algoState.costs.get(v.id);
+      if (c !== undefined) { ctx.fillStyle = '#534ab7'; ctx.font = 'bold 11px "SF Mono", Consolas, monospace'; ctx.fillText(c === Infinity ? '∞' : String(c), v.x, v.y - 32); }
+    }
+  }
+}
+canvas.addEventListener('mousedown', e => {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left, y = e.clientY - rect.top;
+  const v = findVertexAt(x, y);
+  if (v) { draggingVertex = v; dragStartTime = Date.now(); }
+});
+canvas.addEventListener('mousemove', e => {
+  if (!draggingVertex) return;
+  const rect = canvas.getBoundingClientRect();
+  draggingVertex.x = e.clientX - rect.left;
+  draggingVertex.y = e.clientY - rect.top;
+  drawGraph();
+});
+canvas.addEventListener('mouseup', e => {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left, y = e.clientY - rect.top;
+  const clickDuration = Date.now() - dragStartTime;
+  if (draggingVertex && clickDuration < 200) {
+    const clickedV = findVertexAt(x, y);
+    if (clickedV && selectedVertex && clickedV !== selectedVertex) {
+      const w = prompt('Weight of edge ' + selectedVertex.name + '—' + clickedV.name + ':', '1');
+      if (w !== null && !isNaN(parseInt(w))) addEdge(selectedVertex.id, clickedV.id, parseInt(w));
+      selectedVertex = null;
+    } else if (clickedV) { selectedVertex = clickedV; }
+    drawGraph();
+  } else if (!draggingVertex && !findVertexAt(x, y) && !findEdgeAt(x, y)) {
+    addVertex(x, y);
+  }
+  draggingVertex = null;
+});
+canvas.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left, y = e.clientY - rect.top;
+  const v = findVertexAt(x, y);
+  if (v) { vertices = vertices.filter(x => x.id !== v.id); edges = edges.filter(e => e.u !== v.id && e.v !== v.id); refreshStartDropdown(); drawGraph(); return; }
+  const e2 = findEdgeAt(x, y);
+  if (e2) { edges = edges.filter(x => x !== e2); drawGraph(); }
+});
+document.getElementById('clear-graph').onclick = () => {
+  vertices = []; edges = []; nextId = 0; selectedVertex = null; algoState = null;
+  refreshStartDropdown();
+  document.getElementById('log').innerHTML = '';
+  document.getElementById('state-display').innerHTML = '<div class="mini-help">Graph cleared.</div>';
+  drawGraph();
+};
+const presets = {
+  small: { vertices: [{name:'A',x:120,y:100},{name:'B',x:360,y:100},{name:'C',x:240,y:200},{name:'D',x:360,y:300},{name:'E',x:120,y:300}], edges: [[0,1,4],[0,2,1],[1,2,2],[1,3,5],[2,3,8],[2,4,10],[3,4,2]] },
+  medium: { vertices: [{name:'A',x:100,y:80},{name:'B',x:340,y:80},{name:'C',x:580,y:80},{name:'D',x:340,y:220},{name:'E',x:100,y:360},{name:'F',x:340,y:360},{name:'G',x:580,y:360}], edges: [[0,1,7],[0,3,5],[1,2,8],[1,3,9],[2,3,6],[3,4,3],[3,5,4],[3,6,2],[5,6,1]] },
+  practice: { vertices: [{name:'v1',x:100,y:200},{name:'v2',x:240,y:100},{name:'v3',x:400,y:100},{name:'v4',x:560,y:100},{name:'v5',x:400,y:220},{name:'v6',x:240,y:340},{name:'v7',x:400,y:340},{name:'v8',x:560,y:220}], edges: [[0,1,7],[0,5,8],[1,2,6],[1,4,11],[1,5,2],[2,3,5],[2,4,3],[4,6,1],[4,7,5],[3,7,4],[5,6,7],[6,7,7]] },
+};
+document.getElementById('preset').onchange = (e) => {
+  const p = presets[e.target.value]; if (!p) return;
+  vertices = []; edges = []; nextId = 0;
+  p.vertices.forEach(v => addVertex(v.x, v.y, v.name));
+  p.edges.forEach(([i,j,w]) => addEdge(vertices[i].id, vertices[j].id, w));
+  algoState = null;
+  document.getElementById('log').innerHTML = '';
+  document.getElementById('state-display').innerHTML = '<div class="mini-help">Preset loaded.</div>';
+};
+document.getElementById('algo').onchange = () => {
+  const algo = document.getElementById('algo').value;
+  document.getElementById('start-label').style.display = (algo === 'kruskal') ? 'none' : 'inline-block';
+};
+
+function logAdd(html) {
+  const log = document.getElementById('log');
+  const div = document.createElement('div');
+  div.className = 'step'; div.innerHTML = html;
+  log.appendChild(div); log.scrollTop = log.scrollHeight;
+}
+function updateStateDisplay() {
+  const s = algoState;
+  if (!s) { document.getElementById('state-display').innerHTML = '<div class="mini-help">Click "Step through" to begin.</div>'; return; }
+  let html = '';
+  if (s.type === 'prim' || s.type === 'dijkstra') {
+    html += '<div><strong>' + (s.type === 'prim' ? 'Prim' : 'Dijkstra') + '</strong> from <span class="chip">' + vName(s.start) + '</span></div>';
+    html += '<div class="sets" style="margin-top: 10px;"><strong>Discovered:</strong> ';
+    if (s.discovered.size === 0) html += '<em>(none)</em>';
+    else html += [...s.discovered].map(id => '<span class="setchip">' + vName(id) + '</span>').join('');
+    html += '</div>';
+    if (s.type === 'dijkstra' && s.distances) {
+      html += '<div style="margin-top: 10px;"><strong>Distances:</strong> ';
+      html += [...s.distances].map(([id, d]) => '<span class="setchip">' + vName(id) + '=' + (d === Infinity ? '∞' : d) + '</span>').join(' ');
+      html += '</div>';
+    }
+    if (s.type === 'prim' && s.costs) {
+      html += '<div style="margin-top: 10px;"><strong>Costs:</strong> ';
+      html += [...s.costs].map(([id, d]) => '<span class="setchip">' + vName(id) + '=' + (d === Infinity ? '∞' : d) + '</span>').join(' ');
+      html += '</div>';
+    }
+    html += '<div style="margin-top: 10px;"><strong>Total weight:</strong> ' + s.mstEdges.reduce((a,e)=>a+e.w,0) + '</div>';
+  } else if (s.type === 'kruskal') {
+    html += "<div><strong>Kruskal's algorithm</strong></div>";
+    html += '<div class="sets" style="margin-top: 10px;"><strong>Disjoint sets:</strong> ';
+    const sets = new Map();
+    for (const v of vertices) {
+      const r = ufFindGraph(s.parent, v.id);
+      if (!sets.has(r)) sets.set(r, []);
+      sets.get(r).push(v.name);
+    }
+    html += [...sets.values()].map(arr => '<span class="setchip">{' + arr.join(', ') + '}</span>').join('');
+    html += '</div>';
+    html += '<div style="margin-top: 10px;"><strong>MST edges:</strong> ' + s.mstEdges.length + ', weight: ' + s.mstEdges.reduce((a,e)=>a+e.w,0) + '</div>';
+  }
+  document.getElementById('state-display').innerHTML = html;
+}
+function ufFindGraph(parent, x) { while (parent.get(x) !== x) x = parent.get(x); return x; }
+
+function runAlgo() {
+  const algo = document.getElementById('algo').value;
+  const startId = parseInt(document.getElementById('start-vertex').value);
+  document.getElementById('log').innerHTML = '';
+  if (vertices.length === 0) { alert('Add some vertices first.'); return; }
+  if (algo === 'prim') initPrim(startId);
+  else if (algo === 'kruskal') initKruskal();
+  else if (algo === 'dijkstra') initDijkstra(startId);
+  updateStateDisplay(); drawGraph();
+}
+function initPrim(startId) {
+  algoState = { type: 'prim', start: startId, discovered: new Set([startId]),
+    costs: new Map(vertices.map(v => [v.id, v.id === startId ? 0 : Infinity])),
+    mstEdges: [], done: false };
+  logAdd('<strong>Init:</strong> start at <span class="chip">' + vName(startId) + '</span>.');
+}
+function stepPrim() {
+  const s = algoState; if (!s || s.done) return;
+  let best = null; const candidates = [];
+  for (const e of edges) {
+    const inU = s.discovered.has(e.u), inV = s.discovered.has(e.v);
+    if (inU !== inV) {
+      const from = inU ? e.u : e.v, to = inU ? e.v : e.u;
+      candidates.push({ edge: e, from, to });
+      if (!best || e.w < best.edge.w) best = { edge: e, from, to };
+    }
+  }
+  if (!best) {
+    s.done = true;
+    logAdd('<strong>Done.</strong> Total weight: ' + s.mstEdges.reduce((a,e)=>a+e.w,0));
+    updateStateDisplay(); drawGraph(); return;
+  }
+  const candStr = candidates.map(c => '<span class="chip">' + vName(c.from) + '—' + vName(c.to) + ' (' + c.edge.w + ')</span>').join(' ');
+  logAdd('<strong>Candidates:</strong> ' + candStr + '<br/><span class="pick">Pick ' + vName(best.from) + '—' + vName(best.to) + ' (' + best.edge.w + ')</span>');
+  s.mstEdges.push(best.edge); s.discovered.add(best.to); s.costs.set(best.to, 0);
+  playSound('step');
+  updateStateDisplay(); drawGraph();
+}
+function initDijkstra(startId) {
+  algoState = { type: 'dijkstra', start: startId, discovered: new Set(),
+    distances: new Map(vertices.map(v => [v.id, v.id === startId ? 0 : Infinity])),
+    mstEdges: [], done: false };
+  logAdd('<strong>Init:</strong> source <span class="chip">' + vName(startId) + '</span>.');
+}
+function stepDijkstra() {
+  const s = algoState; if (!s || s.done) return;
+  let best = null;
+  for (const v of vertices) {
+    if (s.discovered.has(v.id)) continue;
+    const d = s.distances.get(v.id);
+    if (d === Infinity) continue;
+    if (!best || d < s.distances.get(best)) best = v.id;
+  }
+  if (best === null) { s.done = true; logAdd('<strong>Done.</strong>'); updateStateDisplay(); drawGraph(); return; }
+  s.discovered.add(best);
+  logAdd('<strong>Discover</strong> <span class="pick">' + vName(best) + '</span> with distance ' + s.distances.get(best));
+  const relaxes = [];
+  for (const e of edges) {
+    let other = null;
+    if (e.u === best) other = e.v; else if (e.v === best) other = e.u;
+    if (other === null || s.discovered.has(other)) continue;
+    const newDist = s.distances.get(best) + e.w;
+    if (newDist < s.distances.get(other)) {
+      relaxes.push(vName(other) + ': ' + (s.distances.get(other) === Infinity ? '∞' : s.distances.get(other)) + ' → ' + newDist);
+      s.distances.set(other, newDist);
+    }
+  }
+  if (relaxes.length) logAdd('Relax: ' + relaxes.join('; '));
+  playSound('step');
+  updateStateDisplay(); drawGraph();
+}
+function initKruskal() {
+  const sortedEdges = [...edges].sort((a, b) => a.w - b.w);
+  const parent = new Map(vertices.map(v => [v.id, v.id]));
+  algoState = { type: 'kruskal', sortedEdges, queueIndex: 0, parent, mstEdges: [], skippedEdge: null, done: false };
+  logAdd('<strong>Init.</strong> Sorted ' + sortedEdges.length + ' edges.');
+}
+function stepKruskal() {
+  const s = algoState; if (!s || s.done) return;
+  if (s.queueIndex >= s.sortedEdges.length || s.mstEdges.length >= vertices.length - 1) {
+    s.done = true;
+    logAdd('<strong>Done.</strong> Total weight: ' + s.mstEdges.reduce((a,e)=>a+e.w,0));
+    updateStateDisplay(); drawGraph(); return;
+  }
+  const e = s.sortedEdges[s.queueIndex++];
+  const ru = ufFindGraph(s.parent, e.u), rv = ufFindGraph(s.parent, e.v);
+  if (ru !== rv) {
+    s.mstEdges.push(e); s.parent.set(ru, rv);
+    s.skippedEdge = null;
+    logAdd('<strong>' + vName(e.u) + '—' + vName(e.v) + ' (' + e.w + ')</strong>: <span class="pick">ADD</span>');
+  } else {
+    s.skippedEdge = e;
+    logAdd('<strong>' + vName(e.u) + '—' + vName(e.v) + ' (' + e.w + ')</strong>: <span class="skip">considered, but ignored</span>');
+  }
+  playSound('step');
+  updateStateDisplay(); drawGraph();
+}
+function stepAlgo() {
+  if (!algoState) return;
+  if (algoState.type === 'prim') stepPrim();
+  else if (algoState.type === 'kruskal') stepKruskal();
+  else if (algoState.type === 'dijkstra') stepDijkstra();
+}
+document.getElementById('run').onclick = runAlgo;
+document.getElementById('step').onclick = stepAlgo;
+document.getElementById('reset-algo').onclick = () => {
+  algoState = null; document.getElementById('log').innerHTML = '';
+  updateStateDisplay(); drawGraph();
+};
+let autoplayInterval = null;
+document.getElementById('autoplay').onclick = (e) => {
+  if (autoplayInterval) { clearInterval(autoplayInterval); autoplayInterval = null; e.target.textContent = 'Auto-play'; return; }
+  e.target.textContent = 'Stop';
+  const speed = parseInt(document.getElementById('speed').value);
+  autoplayInterval = setInterval(() => {
+    if (!algoState || algoState.done) { clearInterval(autoplayInterval); autoplayInterval = null; e.target.textContent = 'Auto-play'; return; }
+    stepAlgo();
+  }, speed);
+};
+
+// ============================================================ Union-Find
+let uf = null;
+function ufInit() {
+  const impl = document.getElementById('uf-impl').value;
+  const names = document.getElementById('uf-elements').value.split(',').map(s => s.trim()).filter(x => x);
+  uf = { impl, parent: new Map(names.map(n => [n, n])), height: new Map(names.map(n => [n, 0])) };
+  document.getElementById('uf-log').innerHTML = '';
+  logUF('<strong>Initialized</strong> with ' + names.length + ' singletons using <span class="chip">' + impl + '</span>.');
+  renderUFTrees();
+}
+function logUF(html) {
+  const log = document.getElementById('uf-log');
+  const div = document.createElement('div');
+  div.className = 'step'; div.innerHTML = html;
+  log.appendChild(div); log.scrollTop = log.scrollHeight;
+}
+function ufFindSet(x, withPathCompression) {
+  if (!uf.parent.has(x)) return null;
+  const path = []; let cur = x;
+  while (uf.parent.get(cur) !== cur) { path.push(cur); cur = uf.parent.get(cur); }
+  if (withPathCompression) for (const n of path) uf.parent.set(n, cur);
+  return cur;
+}
+function ufUnion(x, y) {
+  if (!uf.parent.has(x) || !uf.parent.has(y)) { logUF('<span class="skip">Error:</span> unknown element'); return; }
+  const pc = uf.impl === 'tree-height-pc';
+  const rx = ufFindSet(x, pc), ry = ufFindSet(y, pc);
+  if (rx === ry) { logUF('<strong>Union(' + x + ', ' + y + '):</strong> same set'); renderUFTrees(); return; }
+  if (uf.impl === 'tree-basic') {
+    uf.parent.set(ry, rx);
+    logUF('<strong>Union(' + x + ', ' + y + '):</strong> ' + ry + '.parent = ' + rx);
+  } else {
+    const hx = uf.height.get(rx), hy = uf.height.get(ry);
+    if (hx > hy) { uf.parent.set(ry, rx); logUF('<strong>UBH(' + x + ', ' + y + '):</strong> ' + rx + '(h=' + hx + ') wins'); }
+    else if (hy > hx) { uf.parent.set(rx, ry); logUF('<strong>UBH(' + x + ', ' + y + '):</strong> ' + ry + '(h=' + hy + ') wins'); }
+    else { uf.parent.set(ry, rx); uf.height.set(rx, hx + 1); logUF('<strong>UBH(' + x + ', ' + y + '):</strong> tie → ' + rx + ' new root, h=' + (hx+1)); }
+  }
+  playSound('step');
+  renderUFTrees();
+}
+function ufFindCmd(x) {
+  if (!uf.parent.has(x)) { logUF('<span class="skip">Error</span>'); return; }
+  const pc = uf.impl === 'tree-height-pc';
+  const r = ufFindSet(x, pc);
+  logUF('<strong>FindSet(' + x + '):</strong> returns <span class="pick">' + r + '</span>' + (pc ? ' (path compressed)' : ''));
+  renderUFTrees();
+}
+function renderUFTrees() {
+  if (!uf) return;
+  const groups = new Map();
+  for (const [k,_] of uf.parent) {
+    const r = ufFindSet(k, false);
+    if (!groups.has(r)) groups.set(r, []);
+    groups.get(r).push(k);
+  }
+  let out = '';
+  for (const [root, members] of groups) {
+    const children = new Map();
+    for (const m of members) {
+      if (m === root) continue;
+      const p = uf.parent.get(m);
+      if (!children.has(p)) children.set(p, []);
+      children.get(p).push(m);
+    }
+    out += 'Tree rooted at ' + root + ' (height = ' + uf.height.get(root) + '):\n';
+    function recurse(node, depth) {
+      out += '  '.repeat(depth) + '└─ ' + node + '\n';
+      const kids = (children.get(node) || []).sort();
+      for (const k of kids) recurse(k, depth + 1);
+    }
+    out += root + '\n';
+    for (const k of (children.get(root) || []).sort()) recurse(k, 1);
+    out += '\n';
+  }
+  document.getElementById('uf-tree').textContent = out || '(empty)';
+}
+document.getElementById('uf-init').onclick = ufInit;
+document.getElementById('uf-op-union').onclick = () => {
+  if (!uf) { alert('Initialize first.'); return; }
+  const x = prompt('Union(x, y) — x:'); if (!x) return;
+  const y = prompt('Union(x, y) — y:'); if (!y) return;
+  ufUnion(x.trim(), y.trim());
+};
+document.getElementById('uf-op-find').onclick = () => {
+  if (!uf) { alert('Initialize first.'); return; }
+  const x = prompt('FindSet(x) — x:'); if (!x) return;
+  ufFindCmd(x.trim());
+};
+document.getElementById('uf-run').onclick = () => {
+  if (!uf) { alert('Initialize first.'); return; }
+  const lines = document.getElementById('uf-commands').value.split('\n').map(s => s.trim()).filter(x => x);
+  for (const line of lines) {
+    const m1 = line.match(/^Union\s*\(\s*([^,)\s]+)\s*,\s*([^)\s]+)\s*\)/i);
+    const m2 = line.match(/^FindSet\s*\(\s*([^)\s]+)\s*\)/i);
+    if (m1) ufUnion(m1[1], m1[2]);
+    else if (m2) ufFindCmd(m2[1]);
+    else logUF('<span class="skip">Skipped:</span> "' + line + '"');
+  }
+};
+document.getElementById('uf-clear').onclick = () => { document.getElementById('uf-commands').value = ''; };
+
+// ============================================================ NP-C Flashcards
+const cards = [
+  { front: '<strong>Independent Set</strong><br/>G and integer K, does G contain K vertices with no edges between them?<br/><br/><em>Show it\'s in NP.</em>', back: '<div class="cert"><strong>Certificate:</strong> a subset V′ ⊆ V of size K.</div><div class="verify"><strong>Verify:</strong> |V′| = K; for each pair u,v ∈ V′, check (u,v) ∉ E.</div><div class="runtime">O(n²). ✓</div>' },
+  { front: '<strong>Clique</strong><br/>G and integer M, does G contain M pairwise-adjacent vertices?<br/><br/><em>Show it\'s in NP.</em>', back: '<div class="cert"><strong>Certificate:</strong> V′ of size M.</div><div class="verify"><strong>Verify:</strong> For each pair, check (u,v) ∈ E.</div><div class="runtime">O(n²). ✓</div>' },
+  { front: '<strong>Vertex Cover</strong><br/>M vertices that touch every edge?<br/><br/><em>Show it\'s in NP.</em>', back: '<div class="cert"><strong>Certificate:</strong> V′ of size M.</div><div class="verify"><strong>Verify:</strong> For each edge (u,v), check u ∈ V′ OR v ∈ V′.</div><div class="runtime">O(mn). ✓</div>' },
+  { front: '<strong>SAT</strong><br/>Is there an assignment that makes the expression true?<br/><br/><em>Show it\'s in NP.</em>', back: '<div class="cert"><strong>Certificate:</strong> truth assignment.</div><div class="verify"><strong>Verify:</strong> evaluate the expression.</div><div class="runtime">Linear. ✓</div>' },
+  { front: '<strong>3-SAT</strong><br/>3-CNF satisfiability.<br/><br/><em>Show it\'s in NP.</em>', back: '<div class="cert"><strong>Certificate:</strong> truth assignment.</div><div class="verify"><strong>Verify:</strong> each clause has at least one true literal.</div><div class="runtime">O(m). ✓</div>' },
+  { front: '<strong>Hamiltonian Path</strong><br/>Path visiting every vertex exactly once?<br/><br/><em>Show it\'s in NP.</em>', back: '<div class="cert"><strong>Certificate:</strong> sequence (v₁,...,vₙ).</div><div class="verify"><strong>Verify:</strong> n vertices distinct; consecutive pairs are edges.</div><div class="runtime">O(n). ✓</div>' },
+  { front: '<strong>TSP (decision)</strong><br/>Hamiltonian path with weight ≤ C?<br/><br/><em>Show it\'s in NP.</em>', back: '<div class="cert"><strong>Certificate:</strong> a tour.</div><div class="verify"><strong>Verify:</strong> Hamiltonian path + sum weights ≤ C.</div><div class="runtime">O(n). ✓</div>' },
+  { front: '<strong>Subset Sum</strong><br/>Subset summing to M?<br/><br/><em>Show it\'s in NP.</em>', back: '<div class="cert"><strong>Certificate:</strong> S′ ⊆ K.</div><div class="verify"><strong>Verify:</strong> sum S′ = M?</div><div class="runtime">Linear. ✓</div>' },
+  { front: '<strong>Set Cover</strong><br/>K subsets whose union is U?<br/><br/><em>Show it\'s in NP.</em>', back: '<div class="cert"><strong>Certificate:</strong> C′ of size K.</div><div class="verify"><strong>Verify:</strong> union of C′ = U.</div><div class="runtime">O(K·|U|). ✓</div>' },
+  { front: '<strong>3-Coloring</strong><br/>Can G be 3-colored with no adjacent pair sharing a color?<br/><br/><em>Show it\'s in NP.</em>', back: '<div class="cert"><strong>Certificate:</strong> color assignment.</div><div class="verify"><strong>Verify:</strong> for each edge (u,v), color(u) ≠ color(v).</div><div class="runtime">O(m). ✓</div>' },
+];
+let cardIdx = 0;
+function renderCard() {
+  const c = cards[cardIdx];
+  document.getElementById('card-front').innerHTML = c.front;
+  document.getElementById('card-back').innerHTML = c.back;
+  document.getElementById('flashcard').classList.remove('flipped');
+  document.getElementById('npc-progress').textContent = (cardIdx + 1) + ' / ' + cards.length;
+}
+document.getElementById('flashcard').onclick = () => {
+  document.getElementById('flashcard').classList.toggle('flipped');
+  playSound('click');
+};
+document.getElementById('npc-next').onclick = () => { cardIdx = (cardIdx + 1) % cards.length; renderCard(); playSound('click'); };
+document.getElementById('npc-prev').onclick = () => { cardIdx = (cardIdx - 1 + cards.length) % cards.length; renderCard(); playSound('click'); };
+document.getElementById('npc-shuffle').onclick = () => {
+  for (let i = cards.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [cards[i], cards[j]] = [cards[j], cards[i]]; }
+  cardIdx = 0; renderCard(); playSound('click');
+};
+
+// ============================================================ Initialize everything
+window.addEventListener('resize', () => {
+  resizeCanvas();
+  resizeMazeCanvas();
+  resizeRaceCanvases();
+  resizePuzzleCanvas();
+});
+
+// Initial canvas sizing
+resizeCanvas();
+resizeMazeCanvas();
+resizeRaceCanvases();
+resizePuzzleCanvas();
+
+// Initial content (wrapped for safety)
+try {
+  renderCard();
+  document.getElementById('algo').dispatchEvent(new Event('change'));
+  document.getElementById('preset').value = 'small';
+  document.getElementById('preset').dispatchEvent(new Event('change'));
+  renderLeaderboard();
+  ufInit();
+  renderAchievements();
+  loadRaceGraph();
+} catch (err) {
+  console.error('Init error:', err);
+}
+
+// Re-draw after fonts/layout settle (mobile safari timing fix)
+setTimeout(() => {
+  try {
+    resizeCanvas(); drawGraph();
+    resizeMazeCanvas(); drawMaze();
+    resizeRaceCanvases(); drawRaceCanvases();
+    resizePuzzleCanvas(); drawPuzzleCanvas();
+  } catch (err) { console.error('Redraw error:', err); }
+}, 200);
+
+// Final safety net: if somehow splash is still visible after 8s, force dismiss
+setTimeout(() => {
+  const s = document.getElementById('splash');
+  if (s && s.style.display !== 'none') {
+    s.style.display = 'none';
+  }
+}, 8000);
+
+</script>
+</body>
+</html>
